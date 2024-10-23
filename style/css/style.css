@@ -1,0 +1,168 @@
+.material-icons {
+  font-family: "Material Icons";
+  font-weight: normal;
+  font-style: normal;
+  font-size: "20px";
+  line-height: 1;
+  vertical-align: middle;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "liga";
+}
+
+.material-icons-outlined {
+  font-family: "Material Icons Outlined";
+  font-weight: normal;
+  font-style: normal;
+  font-size: "20px";
+  line-height: 1;
+  vertical-align: middle;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "liga";
+}
+
+.material-icons-round {
+  font-family: "Material Icons Round";
+  font-weight: normal;
+  font-style: normal;
+  font-size: "20px";
+  line-height: 1;
+  vertical-align: middle;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "liga";
+}
+
+.material-icons-sharp {
+  font-family: "Material Icons Sharp";
+  font-weight: normal;
+  font-style: normal;
+  font-size: "20px";
+  line-height: 1;
+  vertical-align: middle;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "liga";
+}
+
+.material-icons-two-tone {
+  font-family: "Material Icons Two Tone";
+  font-weight: normal;
+  font-style: normal;
+  font-size: "20px";
+  line-height: 1;
+  vertical-align: middle;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "liga";
+}
+
+.text-ellipsis {
+  display: inline-block;
+  vertical-align: middle;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  word-wrap: normal;
+  max-width: calc(100% - 20px);
+  overflow: hidden;
+}
+
+.dara-fileuploader {
+  clear: both;
+  border: 1px solid #d5d5d8;
+  padding: 10px;
+  margin-top: 5px;
+  margin-bottom: 5px;
+  max-height: 135px;
+  overflow: auto;
+}
+.dara-fileuploader > .file-row {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 22px;
+  margin: 0px 0px 4px 0px;
+  padding: 0px;
+}
+.dara-fileuploader > .file-row > li {
+  float: left;
+  list-style: none;
+  margin: 0px;
+  padding: 0px;
+}
+.dara-fileuploader > .file-row > .file-action-btn {
+  width: 80px;
+}
+.dara-fileuploader > .file-row > .file-action-btn .file-download {
+  display: inline;
+}
+.dara-fileuploader > .file-row > .file-info {
+  width: 240px;
+}
+.dara-fileuploader > .file-row > .file-info .file-name {
+  width: 160px;
+}
+.dara-fileuploader > .file-row > .file-info .file-name.text-ellipsis {
+  max-width: calc(100% - 20px);
+}
+.dara-fileuploader > .file-row > .file-info .file-size {
+  width: 80px;
+}
+.dara-fileuploader > .file-row.dz-complete .file-progress {
+  visibility: hidden;
+}
+.dara-fileuploader > .file-row .file-progress {
+  width: calc(100% - 320px);
+}
+.dara-fileuploader > .file-row .btn {
+  border-radius: 2px;
+  cursor: pointer;
+  outline: none;
+  color: #000;
+  border: 1px solid #d5d5d8;
+  background-color: #fbfbfb;
+  display: inline-block;
+  padding: 3px 3px;
+  margin-bottom: 0;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+  text-decoration: none;
+  line-height: 18px;
+}/*# sourceMappingURL=style.css.map */

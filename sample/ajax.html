@@ -1,0 +1,31 @@
+<!doctype html>
+<html dir="ltr">
+
+<head>
+    <meta charset="utf-8">
+
+    <script src="/dist/dara.web.js"></script>
+    <script src="/custom/dara.web.custom.js"></script>
+
+    <style>
+    </style>
+</head>
+
+<body>
+
+    <div>ajax</div>
+    <div class="darainfo-title">awefawfe</div>
+
+</body>
+<script>
+    AppWeb.ajax.get('/data/ajaxTest.json', {
+        loadSelector: 'body'
+        , data: {
+            pageNo: 1
+            , countPerPage: 10
+            , searchVal: 'test'
+        }
+    }).then(item => { console.log(item) })
+</script>
+
+</html>
