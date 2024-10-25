@@ -1,8 +1,6 @@
 const merge = require("webpack-merge").merge;
 const common = require("./webpack.common.js");
 
-const BundleAnalyzerPlugin = require("webpack-bundle-analyzer").BundleAnalyzerPlugin;
-
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 
 const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
@@ -11,10 +9,8 @@ const TerserPlugin = require("terser-webpack-plugin");
 
 module.exports = merge(common, {
   mode: "production",
-
+  devtool: "source-map",
   optimization: {
-    providedExports: true,
-    usedExports: true,
     minimize: true,
     minimizer: [
       new TerserPlugin({
@@ -42,24 +38,31 @@ module.exports = merge(common, {
       }),
     ],
   },
-
   module: {
     rules: [
       {
         test: /\.(sa|sc|c)ss$/i,
         //exclude: /node_modules/u,
-        use: [MiniCssExtractPlugin.loader, "css-loader", "sass-loader"],
+        use: [
+          MiniCssExtractPlugin.loader,
+          "css-loader",
+          {
+            loader: "sass-loader",
+            options: {
+              implementation: require("sass"), // Prefer `dart-sass`
+            },
+          },
+        ],
         //use: ["style-loader", "css-loader"],
       },
     ],
   },
-  devtool: "source-map",
   output: {
     filename: common.output.filename.replace(/\.js$/, ".min.js"),
   },
   plugins: [
     new MiniCssExtractPlugin({
-      filename: "css/" + common.output.filename.replace(/\.js$/, ".min.css"),
+      //filename: common.output.filename.replace(/\.js$/, ".min.css"),
     }),
     //, new BundleAnalyzerPlugin()
   ],

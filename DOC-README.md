@@ -1,3 +1,4 @@
-# daracl.all.js
+# daracl.core.js
 
-Daracl Web Api Guide
+
+Daracl core Api Guide

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <title>Dara core</title>
+
+</head>
+
+<body>
+  <div class="header">
+    <div class="form-button">
+      <button type="button" onclick="formObj.addItem()">Add</button>
+      <button type="button" onclick="formObj.getValue()">getValue</button>
+      <button type="button" onclick="formObj.getValuePromise()">getValue(true)</button>
+      <button type="button" onclick="formObj.setValue()">setValue()</button>
+      <button type="button" onclick="formBuilder.isValidForm()">valid check</button>
+      <button type="button" onclick="formBuilder.resetForm()">Reset</button>
+      <button type="button" onclick="formBuilder.setFieldItems()">setFieldItems</button>
+    </div>
+
+    <div>
+      Theme : <label>Light<input type="radio" name="theme-toggle" value="light" checked="true"></label>
+      <label>Dark<input type="radio" name="theme-toggle" value="dark"></label>
+    </div>
+  </div>
+
+  <div style="padding: 0px 20px">
+    <form id="loginForm" class="login-form"></form>
+
+    <form id="formArea" class="test-form aaa-test"></form>
+
+  </div>
+</body>
+
+</html>
+<style>
+  .form-button {
+    text-align: center;
+  }
+
+  :root {
+    --bg: #ffffff;
+    --bg-color: #070d19;
+
+  }
+
+  body.dark {
+    --bg: #070d19;
+    --bg-color: #ffffff;
+
+  }
+
+  body {
+    background-color: var(--bg);
+  }
+
+  .header {
+    color: var(--bg-color);
+  }
+</style>
+<script>
+
+</script>

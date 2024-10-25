@@ -16,20 +16,7 @@ const PATHS = {
 
 module.exports = merge(common, {
   mode: "development",
-  cache: false,
   devtool: "inline-source-map",
-  devServer: {
-    // inline: true,
-    //mode: 'development',
-    host: "0.0.0.0",
-    port: 9000,
-    open: {
-      app: {
-        name: "chrome",
-        arguments: ["--new-window", "--auto-open-devtools-for-tabs"],
-      },
-    },
-  },
   module: {
     rules: [
       {
@@ -39,10 +26,23 @@ module.exports = merge(common, {
       },
     ],
   },
+  devServer: {
+    // inline: true,
+    //mode: 'development',
+    host: "0.0.0.0",
+    port: 8889,
+    watchFiles: ["src/**/*"],
+    open: {
+      app: {
+        name: "chrome",
+        arguments: ["--new-window", "--auto-open-devtools-for-tabs"],
+      },
+    },
+  },
   plugins: [
     //new BundleAnalyzerPlugin()
-    // new CopyWebpackPlugin({
-    //   patterns: [{ from: "custom", to: "custom" }],
-    // }),
+    new CopyWebpackPlugin({
+      patterns: [{ from: "dist", to: "dist" }],
+    }),
   ],
 });

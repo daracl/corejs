@@ -1,9 +1,15 @@
 {
   "extends": "./tsconfig",
   "typedocOptions": {
-    "entryPoints": ["src/index.ts"],
+    "entryPoints": [
+      "src/utils/index.ts"
+      // "src/core/StringUtils.ts"
+      //"packages/b/src/index.ts",
+    ],
+    "entryPointStrategy": "Resolve",
     "out": "docs",
-    "name": "Daracl Web Api 문서",
+    "name": "Daracl core",
+    "includeVersion": true,
     "excludePrivate": true,
     "readme": "DOC-README.md",
     "gitRevision": "main",
