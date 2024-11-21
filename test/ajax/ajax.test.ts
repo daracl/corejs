@@ -2,6 +2,8 @@ import Sinon from "sinon";
 import Ajax from "@/Ajax";
 import { AjaxOptions } from "@t/web/AjaxOptions";
 
+global.XMLHttpRequest = require("xhr2");
+
 describe("Ajax Class with Sinon", () => {
   let xhr: Sinon.SinonFakeXMLHttpRequestStatic;
   let ajax: Ajax;
