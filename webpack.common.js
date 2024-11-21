@@ -22,7 +22,7 @@ module.exports = {
     path: path.join(__dirname, "dist"),
     filename: "daracl.core.js",
     library: {
-      name: ["Daracl", "core"],
+      name: ["Daracl"],
       type: "assign-properties",
     },
     libraryTarget: "umd",
@@ -31,7 +31,7 @@ module.exports = {
   resolve: {
     extensions: [".js", ".jsx", ".ts", ".tsx"],
     alias: {
-      src: path.resolve(__dirname, "src/"),
+      "@": path.resolve(__dirname, "src/"),
       //moment: 'moment/src/moment'
       "@t": path.resolve(__dirname, "src/types"),
     },

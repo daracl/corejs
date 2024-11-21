@@ -12,4 +12,5 @@ export * from "./isPlainObject";
 export * from "./isString";
 export * from "./isUndefined";
 export * from "./replaceParameter";
+export * from "./uuid";
 export * from "./str";

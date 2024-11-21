@@ -6,36 +6,6 @@ import { isObject } from "./isObject";
 import { isPlainObject } from "./isPlainObject";
 import { isUndefined } from "./isUndefined";
 
-/**
- * deep merge
- * 
- * @example
- ```
- merge({},{aaa:'bbb',ccc:'ddd'},{bbb:'bbb','aaa':'aaa'})) -> {"aaa": "aaa", "bbb": "bbb", "ccc": "ddd"}
- ```
- * @param {...any[]} value
- * @returns {object}
- */
-export function deepMerge(...value: any[]): any {
-  let reval = value[0];
-
-  if (!isObject(reval) || isEmpty(reval)) {
-    return reval;
-  }
-
-  let i = 1;
-  if (Object.keys(reval).length > 0) {
-    i = 0;
-    reval = isArray(reval) ? [] : {};
-  }
-  const argLen = value.length;
-  for (; i < argLen; i += 1) {
-    cloneDeep(reval, value[i]);
-  }
-
-  return reval;
-}
-
 function cloneDeep(dst: any, src: any): any {
   if (isArray(src)) {
     return cloneArrayDeep(dst, src);
@@ -103,4 +73,34 @@ function cloneArrayDeep(dst: any, src: any[]) {
     }
   }
   return dst;
+}
+
+/**
+ * deep merge
+ * 
+ * @example
+ ```
+ merge({},{aaa:'bbb',ccc:'ddd'},{bbb:'bbb','aaa':'aaa'})) -> {"aaa": "aaa", "bbb": "bbb", "ccc": "ddd"}
+ ```
+ * @param {...any[]} value
+ * @returns {object}
+ */
+export function deepMerge(...value: any[]): any {
+  let reval = value[0];
+
+  if (!isObject(reval) || isEmpty(reval)) {
+    return reval;
+  }
+
+  let i = 1;
+  if (Object.keys(reval).length > 0) {
+    i = 0;
+    reval = isArray(reval) ? [] : {};
+  }
+  const argLen = value.length;
+  for (; i < argLen; i += 1) {
+    cloneDeep(reval, value[i]);
+  }
+
+  return reval;
 }

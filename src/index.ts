@@ -1,4 +1,6 @@
-import * as str from "./utils/str";
-import { isBlank } from "./utils/isBlank";
+import Ajax from "./Ajax";
+import * as Utils from "./utils";
 
-console.log(str.xss("1111"), isBlank("awef"));
+export const ajax = Ajax;
+
+export const utils = Utils;

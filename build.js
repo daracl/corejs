@@ -2,6 +2,8 @@ const esbuild = require("esbuild");
 
 const { sassPlugin } = require("esbuild-sass-plugin");
 
+const packageJson = require("./package.json");
+
 // webpack 에서 external 처리 한 모듈 빌드시 추가
 const common = require("./webpack.common.js");
 let externalItems = [];
@@ -16,6 +18,9 @@ const baseConfig = {
   sourcemap: true,
   plugins: [sassPlugin()],
   external: externalItems,
+  define: {
+    APP_VERSION: `"${packageJson.version}"`, // 환경 변수 설정
+  },
 };
 
 Promise.all([

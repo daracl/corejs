@@ -33,7 +33,7 @@ export function trim(s: string): string {
  * @param s
  * @returns
  */
-export function lTrim(s: string): string {
+export function leftTrim(s: string): string {
   return s.replace(/^\s+/g, "");
 }
 
@@ -43,7 +43,7 @@ export function lTrim(s: string): string {
  * @param s
  * @returns
  */
-export function rTrim(s: string): string {
+export function rightTrim(s: string): string {
   return s.replace(/\s+$/g, "");
 }
 
@@ -80,7 +80,7 @@ export function matchCount(str: string, matchString: string): number {
  * @param {string} [ch='0'] 채울문자
  * @returns {string}
  */
-export function lPad(str: any, len: number, ch = "0"): string {
+export function leftPad(str: any, len: number, ch = "0"): string {
   return pad(str, len, ch, "l");
 }
 
@@ -92,7 +92,7 @@ export function lPad(str: any, len: number, ch = "0"): string {
  * @param {string} [ch='0'] 채울문자 default '0'
  * @returns {string}
  */
-export function rPad(str: any, len: number, ch = "0"): string {
+export function rightPad(str: any, len: number, ch = "0"): string {
   return pad(str, len, ch, "r");
 }
 
