@@ -2,7 +2,7 @@ const esModules = ["@daracl/loading"].join("|");
 
 module.exports = {
   verbose: true,
-  //testEnvironment: "node",
+  testEnvironment: "jest-environment-jsdom",
   preset: "ts-jest",
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",

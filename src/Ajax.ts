@@ -16,6 +16,8 @@ let defaultOptions: AjaxOptions = {
   timeout: -1,
   ignoreResultCheck: false,
 
+  async: true,
+
   errorAlertView: true,
   // response type
   responseType: "json",
@@ -62,7 +64,7 @@ export default class Ajax {
    * @returns {CustomPromise}
    */
   public request(options: any) {
-    return this.ajax(options.url, options);
+    return this.ajax(options.url, options, options.method);
   }
 
   /**
@@ -73,9 +75,8 @@ export default class Ajax {
    * @param {AjaxOptions} options
    * @returns {CustomPromise}
    */
-  public get(url: string, options: any) {
-    options.method = "get";
-    return this.ajax(url, options);
+  public get(url: string, options?: any) {
+    return this.ajax(url, options, "get");
   }
 
   /**
@@ -86,9 +87,8 @@ export default class Ajax {
    * @param {AjaxOptions} options
    * @returns {CustomPromise}
    */
-  public post(url: string, options: any) {
-    options.method = "post";
-    return this.ajax(url, options);
+  public post(url: string, options?: any) {
+    return this.ajax(url, options, "post");
   }
 
   /**
@@ -99,9 +99,8 @@ export default class Ajax {
    * @param {AjaxOptions} options
    * @returns {CustomPromise}
    */
-  public put(url: string, options: any) {
-    options.method = "put";
-    return this.ajax(url, options);
+  public put(url: string, options?: any) {
+    return this.ajax(url, options, "put");
   }
 
   /**
@@ -112,13 +111,14 @@ export default class Ajax {
    * @param {AjaxOptions} options
    * @returns {CustomPromise}
    */
-  public delete(url: string, options: AjaxOptions) {
-    options.method = "delete";
-    return this.ajax(url, options);
+  public delete(url: string, options?: any) {
+    return this.ajax(url, options, "delete");
   }
 
-  private ajax(url: string, options: AjaxOptions) {
+  private ajax(url: string, options: AjaxOptions, method: string) {
     const opts = deepMerge({}, this.options, options) as AjaxOptions;
+
+    opts.method = method ?? "get";
 
     url = opts.baseUrl + url;
 
@@ -151,7 +151,7 @@ export default class Ajax {
         opts.beforeRequest.call(null, options, xhr, loadingInstance);
       }
 
-      xhr.open(opts.method || "get", this.getUrlWithData(url, opts), true);
+      xhr.open(opts.method, this.getUrlWithData(url, opts), opts.async === false ? false : true);
       if (opts.timeout > -1) {
         xhr.timeout = opts.timeout;
       }
@@ -185,11 +185,12 @@ export default class Ajax {
   }
 
   private parseResponse(xhr: XMLHttpRequest, opts: AjaxOptions) {
-    let result = xhr.responseText;
+    const reponseText = xhr.responseText;
+    let result = reponseText;
 
     if (opts.responseType == "json") {
       try {
-        result = JSON.parse(result);
+        result = JSON.parse(reponseText);
       } catch (e) {
         result = (e as any).message;
       }
@@ -197,7 +198,7 @@ export default class Ajax {
     return {
       data: result,
       status: xhr.status,
-      responseText: xhr.responseText,
+      responseText: reponseText,
       config: opts,
       headers: this.getResponseHeaders(xhr),
     };

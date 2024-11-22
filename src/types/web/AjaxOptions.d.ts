@@ -5,6 +5,7 @@ export interface AjaxOptions {
   url?: string;
   method: string;
   responseType?: string;
+  async?: boolean;
   data?: any;
   timeout: number;
   ignoreResultCheck?: boolean;

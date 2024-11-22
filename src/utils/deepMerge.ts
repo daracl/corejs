@@ -86,9 +86,12 @@ function cloneArrayDeep(dst: any, src: any[]) {
  * @returns {object}
  */
 export function deepMerge(...value: any[]): any {
+  if (value.length < 1) {
+    return value;
+  }
   let reval = value[0];
 
-  if (!isObject(reval) || isEmpty(reval)) {
+  if (!isObject(reval) || value.length == 1) {
     return reval;
   }
 
