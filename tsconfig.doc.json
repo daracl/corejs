@@ -2,7 +2,7 @@
   "extends": "./tsconfig",
   "typedocOptions": {
     "entryPoints": [
-      "src/utils/index.ts"
+      "src/index.doc.ts"
       // "src/core/StringUtils.ts"
       //"packages/b/src/index.ts",
     ],

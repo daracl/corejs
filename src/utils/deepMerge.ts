@@ -44,6 +44,9 @@ function cloneObjectDeep(dst: any, src: any): object {
     } else if (!isObject(val)) {
       dst[key] = val;
     } else {
+      if (!isObject(dst[key])) {
+        dst[key] = {};
+      }
       cloneDeep(dst[key], val);
     }
   }
@@ -80,7 +83,7 @@ function cloneArrayDeep(dst: any, src: any[]) {
  * 
  * @example
  ```
- merge({},{aaa:'bbb',ccc:'ddd'},{bbb:'bbb','aaa':'aaa'})) -> {"aaa": "aaa", "bbb": "bbb", "ccc": "ddd"}
+ deepMerge({},{aaa:'bbb',ccc:'ddd'},{bbb:'bbb','aaa':'aaa'})) -> {"aaa": "aaa", "bbb": "bbb", "ccc": "ddd"}
  ```
  * @param {...any[]} value
  * @returns {object}
