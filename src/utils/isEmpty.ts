@@ -1,3 +1,4 @@
+import { isNil } from "./isNil";
 import { isString } from "./isString";
 
 /**
@@ -7,7 +8,8 @@ import { isString } from "./isString";
  * @returns 비어 있으면 true, 그렇지 않으면 false
  */
 export function isEmpty(value: any): boolean {
-  if (value === null || value === undefined) {
+  // null/undefined 체크는 isNil 타입 가드를 사용
+  if (isNil(value)) {
     return true; // null 또는 undefined일 경우
   }
 

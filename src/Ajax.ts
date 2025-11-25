@@ -36,7 +36,7 @@ let defaultOptions: AjaxOptions = {
  * @class Ajax
  * @typedef {Ajax}
  */
-export default class Ajax {
+export class Ajax {
   private options;
   constructor(options: any) {
     this.options = deepMerge({}, defaultOptions, options) as AjaxOptions;
@@ -126,7 +126,7 @@ export default class Ajax {
       const xhr = new XMLHttpRequest();
 
       // 처리할것
-      let loadingInstance: Loading = new Loading(null, {});
+      let loadingInstance: Loading = new Loading(opts.loaderContainer, opts.loaderOption);
 
       if (opts.enableDefaultLoader !== false && opts.loaderContainer) {
         if (opts.loaderContainer instanceof HTMLElement) {

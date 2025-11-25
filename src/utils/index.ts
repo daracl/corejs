@@ -14,3 +14,6 @@ export * from "./isUndefined";
 export * from "./replaceParameter";
 export * from "./uuid";
 export * from "./str";
+export * from "./isNil";
+
+
