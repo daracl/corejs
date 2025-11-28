@@ -1,7 +1,10 @@
 {
   "name": "@daracl/core",
   "version": "0.0.1",
-  "sideEffects": false,
+  "sideEffects": [
+    "src/index.umd.ts",
+    "./style/*.scss"
+  ],
   "description": "daracl core library",
   "author": {
     "name": "darainfo",
