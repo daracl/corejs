@@ -12,7 +12,7 @@ function cloneDeep(dst: any, src: any): any {
   }
 
   if (isDate(src)) {
-    return new src.constructor(src);
+     return new Date(src.getTime());
   }
 
   if (isObject(src)) {

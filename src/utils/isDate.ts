@@ -4,6 +4,6 @@
  * @param value - 확인할 값
  * @returns Date 객체이면 true, 그렇지 않으면 false
  */
-export function isDate(value: any): boolean {
+export function isDate(value: any): value is Date  {
   return value instanceof Date && !isNaN(value.getTime());
 }

@@ -26,11 +26,12 @@ export default defineConfig(({ mode }) => {
       outDir: isProd ? 'dist' : 'dist/unmin',
       emptyOutDir: true,
       sourcemap: true,
-      minify: isProd ? 'terser' : false,
+      minify: isProd ? 'esbuild' : false,
       lib: {
         entry: path.resolve(__dirname, 'src/index.ts'),
         name: 'Daracl.core',
         formats: ['es', 'cjs', 'umd'],
+        //formats: ['es', 'cjs'],
         fileName: (format) => {
           if (format === 'umd') {
             return isProd ? `${moduleName}.min.umd.js` : `${moduleName}.umd.js`;
@@ -51,7 +52,9 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
        
         output: {
-            
+        //  inlineDynamicImports: false,
+          //preserveModules : true, // 내보내기 모듈 단위로 하기.
+            //preserveModulesRoot: 'src',
           assetFileNames: (assetInfo) => {
               if (assetInfo.name.endsWith('.css')) {
               return isProd ? `${moduleName}.min.[ext]` : `${moduleName}.[ext]`;

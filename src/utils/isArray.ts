@@ -4,6 +4,6 @@
  * @param value - 확인할 값
  * @returns 배열이면 true, 그렇지 않으면 false
  */
-export function isArray(value: any): boolean {
+export function isArray(value: any): value is any[]  {
   return Array.isArray(value);
 }

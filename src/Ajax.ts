@@ -2,33 +2,9 @@ import { AjaxOptions } from "@t/web/AjaxOptions";
 import { deepMerge, hasProperty, isObject } from "./utils";
 import { objectToQueryString } from "./utils/objectToQueryString";
 
-import Loading from "@daracl/loading";
+import { Loading } from "./Loading";
 import { ajaxCallback } from "@t/callbackFunction";
 
-let defaultOptions: AjaxOptions = {
-  // 기본 url
-  baseUrl: "",
-
-  url: "",
-  // ajax method
-  method: "POST",
-  // ajax time out
-  timeout: -1,
-  ignoreResultCheck: false,
-
-  async: true,
-
-  errorAlertView: true,
-  // response type
-  responseType: "json",
-  // ajax header
-  headers: { "X-Requested-With": "XMLHttpRequest" },
-  // 로딩 이미지 보여줄 container // selector, html element
-  loaderContainer: "",
-  // 기본 로더 사용여부
-  enableDefaultLoader: true,
-  loaderOption: {},
-};
 
 /**
  * Ajax 컨트롤
@@ -39,22 +15,24 @@ let defaultOptions: AjaxOptions = {
 export class Ajax {
   private options;
   constructor(options: any) {
-    this.options = deepMerge({}, defaultOptions, options) as AjaxOptions;
+    this.options = deepMerge({}, this.createDefaultOptions(), options) as AjaxOptions;
   }
 
-  public static create(opts: AjaxOptions) {
-    return new Ajax(opts);
-  }
+  createDefaultOptions = (): AjaxOptions => ({
+    baseUrl: "",
+    url: "",
+    method: "POST",
+    timeout: -1,
+    ignoreResultCheck: false,
+    async: true,
+    errorAlertView: true,
+    responseType: "json",
+    headers: { "X-Requested-With": "XMLHttpRequest" },
+    loaderContainer: "",
+    enableDefaultLoader: true,
+    loaderOption: {},
+  });
 
-  public static setOptions(opts: AjaxOptions) {
-    defaultOptions = deepMerge(defaultOptions, opts) as AjaxOptions;
-  }
-
-  public static getOptions(): AjaxOptions {
-    return defaultOptions;
-  }
-
-  public static instance = new Ajax(defaultOptions);
 
   /**
    * ajax request
@@ -63,8 +41,8 @@ export class Ajax {
    * @param {AjaxOptions} options
    * @returns {CustomPromise}
    */
-  public request(options: any) {
-    return this.ajax(options.url, options, options.method);
+  public request(options: AjaxOptions) {
+    return this.ajax(options?.url||"", options.method, options);
   }
 
   /**
@@ -75,8 +53,8 @@ export class Ajax {
    * @param {AjaxOptions} options
    * @returns {CustomPromise}
    */
-  public get(url: string, options?: any) {
-    return this.ajax(url, options, "get");
+  public get(url: string, options?: AjaxOptions) {
+    return this.ajax(url, "get", options);
   }
 
   /**
@@ -87,8 +65,8 @@ export class Ajax {
    * @param {AjaxOptions} options
    * @returns {CustomPromise}
    */
-  public post(url: string, options?: any) {
-    return this.ajax(url, options, "post");
+  public post(url: string, options?: AjaxOptions) {
+    return this.ajax(url, "post", options);
   }
 
   /**
@@ -99,8 +77,8 @@ export class Ajax {
    * @param {AjaxOptions} options
    * @returns {CustomPromise}
    */
-  public put(url: string, options?: any) {
-    return this.ajax(url, options, "put");
+  public put(url: string, options?: AjaxOptions) {
+    return this.ajax(url, "put", options);
   }
 
   /**
@@ -111,11 +89,11 @@ export class Ajax {
    * @param {AjaxOptions} options
    * @returns {CustomPromise}
    */
-  public delete(url: string, options?: any) {
-    return this.ajax(url, options, "delete");
+  public delete(url: string, options?: AjaxOptions) {
+    return this.ajax(url, "delete", options);
   }
 
-  private ajax(url: string, options: AjaxOptions, method: string) {
+  private ajax(url: string, method: string, options?: AjaxOptions) {
     const opts = deepMerge({}, this.options, options) as AjaxOptions;
 
     opts.method = method ?? "get";
@@ -249,7 +227,7 @@ export class Ajax {
   }
 }
 
-class CustomPromise {
+export class CustomPromise {
   private onResolve: ajaxCallback;
   private onReject: ajaxCallback;
   private onFinally: (xhr: XMLHttpRequest, loadingInstance: Loading) => void;
