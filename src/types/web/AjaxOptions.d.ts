@@ -3,11 +3,11 @@ import { ajaxCallback } from "@t/callbackFunction";
 export interface AjaxOptions {
   baseUrl?: string;
   url?: string;
-  method: string;
+  method?: string;
   responseType?: string;
   async?: boolean;
   data?: any;
-  timeout: number;
+  timeout?: number;
   ignoreResultCheck?: boolean;
   errorAlertView?: boolean;
   headers?: any;

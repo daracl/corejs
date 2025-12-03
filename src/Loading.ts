@@ -4,7 +4,6 @@ import { isBlank } from "./utils";
 
 const instanceMap: Record<string, Loading> = {};
 const centerLoadingIntervalObject: Record<string, number> = {};
-declare const APP_VERSION: string
 
 let defaultOptions:Required<LoadingOptions> = {
   //  사라지는 시간
@@ -39,7 +38,6 @@ let defaultOptions:Required<LoadingOptions> = {
  */
 
 export class Loading {
-  public static VERSION = `${APP_VERSION}`
 
   private selector: string;
   private containerNode: HTMLElement | null;

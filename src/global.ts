@@ -11,8 +11,11 @@ declare global {
   }
 }
 
+declare const APP_VERSION: string;
+
 if (typeof window !== "undefined") {
   window.Daracl = window.Daracl || {};
+  window.Daracl.VERSION = `${APP_VERSION}`;
   window.Daracl.ajax=Ajax;
   window.Daracl.utils=utils;
   window.Daracl.loading=Loading;

@@ -3,5 +3,5 @@ export interface OptionCallback {
 }
 
 interface ajaxCallback {
-  (value: any, xhr: XMLHttpRequest, loadingInstance?: Loading): void;
+  (value: any, xhr: XMLHttpRequest|null, loadingInstance?: Loading): void;
 }

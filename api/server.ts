@@ -1,70 +1,74 @@
-// src/server.ts
 import express, { Request, Response, Express } from "express";
 import multer from "multer";
 import path from "path";
+import fs from "fs";
 import { items } from "./data/items";
+import cors from 'cors';
 
-// Initialize express app
 const app: Express = express();
 
-// Set up multer for file uploads
+// Ensure upload directory exists
+const uploadDir = "uploads";
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
+
+// Set up multer
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "uploads/"); // Save to 'uploads' directory
+    cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname)); // Add timestamp to filename
+    cb(null, Date.now() + path.extname(file.originalname));
   },
 });
 
-const upload = multer({ storage: storage });
+const upload = multer({ storage });
+
+// 모든 도메인 허용
+app.use(cors());
 
 // Middleware
 app.use(express.json());
-app.use("/uploads", express.static("uploads")); // Serve uploaded files
+app.use("/uploads", express.static(uploadDir));
 
-// Sample data
-let allItems: any[] = items;
+/**
+ * 요청 헤더를 그대로 응답 헤더로 설정
+ */
+function mirrorHeaders(req: Request, res: Response) {
+  for (const [key, value] of Object.entries(req.headers)) {
+    if (value) res.setHeader(key, Array.isArray(value) ? value.join(", ") : value);
+  }
+}
 
-// GET API endpoint
+// Routes
 app.get("/api/items", (req: Request, res: Response) => {
+  mirrorHeaders(req, res);
   res.json(items);
 });
 
-// POST API endpoint
 app.post("/api/items", (req: Request, res: Response) => {
+  mirrorHeaders(req, res);
   const newItem = req.body;
   items.push(newItem);
   res.status(201).json(newItem);
 });
 
-// PUT API endpoint
 app.put("/api/items/:index", (req: Request, res: Response) => {
+  mirrorHeaders(req, res);
   const index = parseInt(req.params.index);
-  if (items[index]) {
-    items[index] = req.body;
-    res.json(items[index]);
-  } else {
-    res.status(404).send("Item not found");
-  }
+  if (items[index]) res.json((items[index] = req.body));
+  else res.status(404).send("Item not found");
 });
 
-// DELETE API endpoint
 app.delete("/api/items/:index", (req: Request, res: Response) => {
+  mirrorHeaders(req, res);
   const index = parseInt(req.params.index);
-  if (items[index]) {
-    const deletedItem = items.splice(index, 1);
-    res.json(deletedItem);
-  } else {
-    res.status(404).send("Item not found");
-  }
+  if (items[index]) res.json(items.splice(index, 1));
+  else res.status(404).send("Item not found");
 });
 
-// File upload endpoint
 app.post("/api/upload", upload.single("file"), (req: Request, res: Response) => {
-  if (!req.file) {
-    return res.status(400).send("No file uploaded");
-  }
+  mirrorHeaders(req, res);
+  if (!req.file) return res.status(400).send("No file uploaded");
   res.status(201).json({ filePath: `/uploads/${req.file.filename}` });
 });
 

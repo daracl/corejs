@@ -1,59 +1,22 @@
-import sinon, { SinonFakeXMLHttpRequest, SinonFakeXMLHttpRequestStatic, fakeServer, SinonFakeServer, SinonFakeServerStatic } from "sinon";
-import Ajax from "@/Ajax";
-import { AjaxOptions } from "@t/web/AjaxOptions";
+import { setupTestEnvironment, getAjaxInstance } from "./test-setup";
 
-describe("Ajax post method test", () => {
-  let ajax: Ajax;
-  let server: SinonFakeServer;
+setupTestEnvironment(); // beforeAll / afterAll 자동 적용
 
-  beforeEach(() => {
-    server = fakeServer.create();
-    server.respondImmediately = true;
-
-    // Ajax 인스턴스 생성
-    ajax = new Ajax({
-      baseUrl: "",
-      timeout: 5000,
-    });
+describe("Ajax POST /api/items", () => {
+  it("should return posted data", async () => {
+    const ajax = getAjaxInstance();
+    const payload = { aaa: "bbbb" };
+    const res = await ajax.post("/api/items", { data: payload });
+    expect(res.data).toEqual(payload);
   });
 
-  afterEach(() => {
-    (global as any).XMLHttpRequest.restore();
-    // 모든 모킹과 스텁을 복원
-    server.restore();
-    sinon.restore();
-  });
-
-  it("post method test", async () => {
-    // 요청을 비동기적으로 처리
-    const responseBody = { message: "success" };
-
-    server.respondWith("post", "/api/items", [200, { "Content-Type": "application/json" }, JSON.stringify(responseBody)]);
-
-    // Ajax GET 요청
-    const resultPromise = ajax.post("/api/items", { async: false });
-    resultPromise
-      .then((response: any) => {
-        expect(response.data).toMatchObject(responseBody);
-      })
-      .catch((err: any) => {
-        //console.log("err", err);
-      })
-      .finally((xhr: any) => {
-        expect(xhr.method.toLowerCase()).toEqual("post");
-        expect(xhr.status).toBe(200);
-        expect(xhr.url).toBe("/api/items");
-      });
-
-    server.respond();
-  });
-
-  it("Should return 404 error", async () => {
-    server.respondWith("get", "/api/items", [200, { "Content-Type": "application/json" }, JSON.stringify({})]);
-    ajax.post("/api/items").catch(function (response, xhr) {
-      expect(xhr.status).toBe(404);
-    });
-
-    server.respond();
+  it("should return 404 for invalid endpoint", async () => {
+    const ajax = getAjaxInstance();
+    try {
+      await ajax.post("/api/items1", { data: { aaa: "bbbb" } });
+    } catch (err: any) {
+      console.log(err.xhr.status);
+      expect(err.xhr.status).toBe(404);
+    }
   });
 });

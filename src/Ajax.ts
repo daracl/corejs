@@ -1,295 +1,245 @@
+// src/Ajax.ts
 import { AjaxOptions } from "@t/web/AjaxOptions";
 import { deepMerge, hasProperty, isObject } from "./utils";
 import { objectToQueryString } from "./utils/objectToQueryString";
-
 import { Loading } from "./Loading";
-import { ajaxCallback } from "@t/callbackFunction";
 
-
-/**
- * Ajax 컨트롤
- *
- * @class Ajax
- * @typedef {Ajax}
- */
 export class Ajax {
-  private options;
-  constructor(options: any) {
-    this.options = deepMerge({}, this.createDefaultOptions(), options) as AjaxOptions;
+  private options: AjaxOptions;
+
+  constructor(options?: AjaxOptions) {
+    this.options = deepMerge({}, this.createDefaultOptions(), options || {});
   }
 
-  createDefaultOptions = (): AjaxOptions => ({
-    baseUrl: "",
-    url: "",
-    method: "POST",
-    timeout: -1,
-    ignoreResultCheck: false,
-    async: true,
-    errorAlertView: true,
-    responseType: "json",
-    headers: { "X-Requested-With": "XMLHttpRequest" },
-    loaderContainer: "",
-    enableDefaultLoader: true,
-    loaderOption: {},
-  });
+  createDefaultOptions(): AjaxOptions {
+    return {
+      baseUrl: "",
+      url: "",
+      method: "POST",
+      timeout: -1,
+      ignoreResultCheck: false,
+      async: true,
+      errorAlertView: true,
+      responseType: "json",
+      headers: { "X-Requested-With": "XMLHttpRequest" },
+      loaderContainer: "",
+      enableDefaultLoader: false,
+      loaderOption: {},
+    };
+  }
 
+  public static create(options?: AjaxOptions) {
+    return new Ajax(options);
+  }
 
-  /**
-   * ajax request
-   *
-   * @public
-   * @param {AjaxOptions} options
-   * @returns {CustomPromise}
-   */
   public request(options: AjaxOptions) {
-    return this.ajax(options?.url||"", options.method, options);
+    return this.ajax(options?.url || "", options.method || "POST", options);
   }
 
-  /**
-   * ajax get
-   *
-   * @public
-   * @param {string} url
-   * @param {AjaxOptions} options
-   * @returns {CustomPromise}
-   */
   public get(url: string, options?: AjaxOptions) {
-    return this.ajax(url, "get", options);
+    return this.ajax(url, "GET", options);
   }
 
-  /**
-   * ajax post
-   *
-   * @public
-   * @param {string} url
-   * @param {AjaxOptions} options
-   * @returns {CustomPromise}
-   */
   public post(url: string, options?: AjaxOptions) {
-    return this.ajax(url, "post", options);
+    return this.ajax(url, "POST", options);
   }
 
-  /**
-   * ajax put
-   *
-   * @public
-   * @param {string} url
-   * @param {AjaxOptions} options
-   * @returns {CustomPromise}
-   */
   public put(url: string, options?: AjaxOptions) {
-    return this.ajax(url, "put", options);
+    return this.ajax(url, "PUT", options);
+  }
+
+  public delete(url: string, options?: AjaxOptions) {
+    return this.ajax(url, "DELETE", options);
   }
 
   /**
-   * ajax delete
-   *
-   * @public
-   * @param {string} url
-   * @param {AjaxOptions} options
-   * @returns {CustomPromise}
+   * Ajax 요청 처리
+   * fetch가 있으면 fetch 우선, 없으면 XHR fallback
    */
-  public delete(url: string, options?: AjaxOptions) {
-    return this.ajax(url, "delete", options);
-  }
-
-  private ajax(url: string, method: string, options?: AjaxOptions) {
-    const opts = deepMerge({}, this.options, options) as AjaxOptions;
-
-    opts.method = method ?? "get";
+  private async ajax(url: string, method: string, options?: AjaxOptions): Promise<any> {
+    const opts = deepMerge({}, this.options, options || {});
+    const ajaxMethd = method || "GET";
+    opts.method = ajaxMethd;
 
     url = opts.baseUrl + url;
 
-    return new CustomPromise((resolve, reject) => {
+    if (ajaxMethd.toLowerCase() === "get" && opts.data) {
+      url = this.getUrlWithData(url, opts);
+    }
+
+    // 공통 처리: loader 생성, beforeRequest 호출, cancel callback
+    const { loadingInstance, abortController } = this.prepareRequest(opts);
+    
+    // fetch 사용
+    if (typeof fetch === "function") {
+      const fetchOptions: RequestInit = {
+        method: ajaxMethd,
+        headers: opts.headers,
+      };
+
+      if (ajaxMethd.toLowerCase() !== "get" && opts.data) {
+        fetchOptions.body = JSON.stringify(opts.data);
+      }
+
+      if (abortController) {
+        fetchOptions.signal = abortController.signal;
+      }
+
+      try {
+        const response = await fetch(url, fetchOptions);
+        const text = await response.text();
+        let data: any = text;
+
+        if (opts.responseType === "json") {
+          try {
+            data = JSON.parse(text);
+          } catch (e) {
+            data = { error: (e as any).message };
+          }
+        }
+
+        if (!response.ok) {
+          return Promise.reject({ error: new Error(`Request failed with status ${response.status}`), xhr: response, loadingInstance });
+        }
+
+        return Promise.resolve({
+          data,
+          status: response.status,
+          responseText: text,
+          config: opts,
+          headers: this.parseFetchHeaders(response),
+          loadingInstance,
+        });
+      } catch (err) {
+        return Promise.reject({ error: err, xhr: null, loadingInstance });
+      }
+    }
+
+    // fetch fallback: XHR
+    return this.ajaxXHR(url, ajaxMethd, opts, loadingInstance);
+  }
+
+  /**
+   * XHR 처리
+   */
+  private ajaxXHR(url: string, method: string, opts: AjaxOptions, loadingInstance: Loading|null): Promise<any> {
+    return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
 
-      // 처리할것
-      let loadingInstance: Loading = new Loading(opts.loaderContainer, opts.loaderOption);
-
-      if (opts.enableDefaultLoader !== false && opts.loaderContainer) {
-        if (opts.loaderContainer instanceof HTMLElement) {
-          const loaderOption = opts.loaderOption;
-          if (loaderOption.enableCancelButton === true) {
-            if (loaderOption.callback) {
-              const loaderCallback = loaderOption.callback;
-              loaderOption.callback = () => {
-                if (loaderCallback(options) === false) {
-                  return false;
-                }
-                xhr.abort();
-                return true;
-              };
-            }
-          }
-          loadingInstance = new Loading(opts.loaderContainer, opts.loaderOption);
-        }
-      }
-
-      if (opts.beforeRequest) {
-        opts.beforeRequest.call(null, options, xhr, loadingInstance);
-      }
-
-      xhr.open(opts.method, this.getUrlWithData(url, opts), opts.async === false ? false : true);
-      if (opts.timeout > -1) {
-        xhr.timeout = opts.timeout;
-      }
+      xhr.open(method, this.getUrlWithData(url, opts), opts.async !== false);
+      if (opts.timeout && opts.timeout > 0) xhr.timeout = opts.timeout;
 
       this.setHeaders(xhr, opts);
 
-      xhr.addEventListener(
-        "readystatechange",
-        () => {
-          if (xhr.readyState === xhr.DONE) {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              resolve(this.parseResponse(xhr, opts), xhr, loadingInstance);
-            } else {
-              reject(new Error(`Request failed with status ${xhr.status}`), xhr, loadingInstance);
-            }
+      xhr.onreadystatechange = () => {
+        if (xhr.readyState === XMLHttpRequest.DONE) {
+          const response = this.parseResponse(xhr, opts);
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve({ ...response, loadingInstance });
+          } else {
+            reject({ error: new Error(`Request failed with status ${xhr.status}`), xhr, loadingInstance });
           }
-        },
-        false
-      );
-
-      xhr.onerror = function () {
-        reject(new Error("Network error"), xhr, loadingInstance);
+        }
       };
 
-      if (isObject(opts.data)) {
-        xhr.send(JSON.stringify(opts.data));
-      } else {
+      xhr.onerror = () => reject({ error: new Error("Network error"), xhr, loadingInstance });
+
+      if (method.toLowerCase() === "get" || !opts.data) {
         xhr.send();
+      } else {
+        xhr.send(JSON.stringify(opts.data));
       }
     });
   }
 
-  private parseResponse(xhr: XMLHttpRequest, opts: AjaxOptions) {
-    const reponseText = xhr.responseText;
-    let result = reponseText;
+  /**
+   * 공통 처리: loader, beforeRequest, cancel button
+   */
+  private prepareRequest(opts: AjaxOptions): { loadingInstance: Loading | null; abortController: AbortController | null } {
+    let loadingInstance: Loading | null = null;
+    let abortController: AbortController | null = null;
 
-    if (opts.responseType == "json") {
+    if (opts.enableDefaultLoader && opts.loaderContainer) {
+      loadingInstance = new Loading(opts.loaderContainer, opts.loaderOption);
+    }
+
+    if (opts.loaderOption?.enableCancelButton && typeof AbortController !== "undefined") {
+      abortController = new AbortController();
+
+      const originalCallback = opts.loaderOption.callback;
+      opts.loaderOption.callback = () => {
+        if (originalCallback) originalCallback(opts);
+        abortController!.abort();
+      };
+    }
+
+    if (opts.beforeRequest) {
+      opts.beforeRequest.call(null, opts, null, loadingInstance);
+    }
+
+    return { loadingInstance, abortController };
+  }
+
+  private parseResponse(xhr: XMLHttpRequest, opts: AjaxOptions) {
+    let result: any = xhr.responseText;
+
+    if (opts.responseType === "json") {
       try {
-        result = JSON.parse(reponseText);
+        result = JSON.parse(xhr.responseText);
       } catch (e) {
-        result = (e as any).message;
+        result = { error: (e as any).message };
       }
     }
+
     return {
       data: result,
       status: xhr.status,
-      responseText: reponseText,
+      responseText: xhr.responseText,
       config: opts,
       headers: this.getResponseHeaders(xhr),
     };
   }
 
-  /**
-   * response header
-   *
-   * @param xhr {XMLHttpRequest} ajax obj
-   * @returns {Object} header 정보
-   */
-  private getResponseHeaders(xhr: XMLHttpRequest) {
-    const allHeaders = xhr.getAllResponseHeaders();
-
-    // 헤더를 객체로 변환하기 (선택 사항)
+  private parseFetchHeaders(response: Response) {
     const headersObj: Record<string, string> = {};
-    const headersArray = allHeaders.trim().split(/[\r\n]+/);
-    headersArray.forEach((line) => {
-      const parts = line.split(": ");
-      const header = parts.shift();
-      const value = parts.join(": ");
-      if (header) {
-        headersObj[header] = value;
-      }
+    response.headers.forEach((value, key) => {
+      headersObj[key] = value;
     });
+    return headersObj;
+  }
+
+  private getResponseHeaders(xhr: XMLHttpRequest) {
+    const headersObj: Record<string, string> = {};
+    const allHeaders = xhr.getAllResponseHeaders();
+    const lines = allHeaders.trim().split(/[\r\n]+/);
+
+    console.log("allHeaders:", allHeaders);
+
+    for (const line of lines) {
+      const parts = line.split(": ");
+      const key = parts.shift();
+      const value = parts.join(": ");
+      if (key) headersObj[key] = value;
+    }
 
     return headersObj;
   }
 
-  private getUrlWithData(url: string, options: AjaxOptions): string {
-    if (options.method.toLowerCase() !== "get" || !options.data) {
-      return url;
-    }
-    const dataAsQueryString = objectToQueryString(options.data);
-    const queryStringSeparator = url.indexOf("?") > -1 ? "&" : "?";
-    return url + queryStringSeparator + dataAsQueryString;
+  private getUrlWithData(url: string, opts: AjaxOptions): string {
+    if (!opts.data) return url;
+    const qs = objectToQueryString(opts.data);
+    return url + (url.includes("?") ? "&" : "?") + qs;
   }
 
-  private setHeaders(xhr: XMLHttpRequest, options: AjaxOptions) {
-    const headers = options.headers || {};
+  private setHeaders(xhr: XMLHttpRequest, opts: AjaxOptions) {
+    const headers = opts.headers || {};
+
     if (!hasProperty(headers, "Content-Type")) {
-      headers["Content-Type"] = isObject(options.data) ? "application/json" : "application/x-www-form-urlencoded";
+      headers["Content-Type"] = isObject(opts.data) ? "application/json" : "application/x-www-form-urlencoded";
     }
 
-    Object.keys(headers).forEach(function (name) {
-      headers[name] && xhr.setRequestHeader(name, headers[name]);
-    });
-  }
-}
-
-export class CustomPromise {
-  private onResolve: ajaxCallback;
-  private onReject: ajaxCallback;
-  private onFinally: (xhr: XMLHttpRequest, loadingInstance: Loading) => void;
-  private isFulfilled = false;
-  private isRejected = false;
-  private resolveValue!: any;
-  private rejectReason: any;
-  private xhr: XMLHttpRequest;
-
-  constructor(executor: (resolve: ajaxCallback, reject: ajaxCallback) => void) {
-    const resolve = (value: any, xhr: XMLHttpRequest, loadingInstance: Loading) => {
-      this.isFulfilled = true;
-      this.resolveValue = value;
-      this.xhr = xhr;
-
-      if (this.onResolve) {
-        this.onResolve(value, xhr, loadingInstance);
-      }
-      if (this.onFinally) {
-        this.onFinally(xhr, loadingInstance);
-      }
-    };
-
-    const reject = (reason: any, xhr: XMLHttpRequest, loadingInstance: Loading) => {
-      this.isRejected = true;
-      this.rejectReason = reason;
-      this.xhr = xhr;
-      if (this.onReject) {
-        this.onReject(reason, xhr, loadingInstance);
-      }
-      if (this.onFinally) {
-        this.onFinally(xhr, loadingInstance);
-      }
-    };
-
-    executor(resolve, reject);
-  }
-
-  then(callback: (value: any, xhr: XMLHttpRequest) => void): CustomPromise {
-    if (this.isFulfilled) {
-      callback(this.resolveValue, this.xhr);
-    } else {
-      this.onResolve = callback;
+    for (const key of Object.keys(headers)) {
+      if (headers[key]) xhr.setRequestHeader(key, headers[key]);
     }
-    return this;
-  }
-
-  catch(callback: (reason: any, xhr: XMLHttpRequest) => void): CustomPromise {
-    if (this.isRejected) {
-      callback(this.rejectReason, this.xhr);
-    } else {
-      this.onReject = callback;
-    }
-    return this;
-  }
-
-  finally(callback: (xhr: XMLHttpRequest) => void): CustomPromise {
-    if (this.isFulfilled || this.isRejected) {
-      callback(this.xhr);
-    } else {
-      this.onFinally = callback;
-    }
-    return this;
   }
 }
