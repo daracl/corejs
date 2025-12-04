@@ -14,6 +14,7 @@ export interface AjaxOptions {
   enableDefaultLoader?: boolean;
   loaderContainer?: string | HTMLElement;
   loaderOption?: any;
+  validMethods?: string[];
   beforeRequest?: ajaxCallback;
   beforeResponse?: ajaxCallback;
 }

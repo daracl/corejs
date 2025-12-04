@@ -1,5 +1,5 @@
 
-export * from "./Ajax";
+export * from "./ajax/Ajax";
 export * from "./Loading";
 export * from "./utils";
 export * from "./common/dom";

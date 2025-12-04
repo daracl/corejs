@@ -35,31 +35,33 @@ app.use("/uploads", express.static(uploadDir));
  */
 function mirrorHeaders(req: Request, res: Response) {
   for (const [key, value] of Object.entries(req.headers)) {
-    if (value) res.setHeader(key, Array.isArray(value) ? value.join(", ") : value);
+    if (value){
+      res.setHeader(key, Array.isArray(value) ? value.join(", ") : value);
+    } 
   }
 }
 
 // Routes
-app.get("/api/items", (req: Request, res: Response) => {
+app.get("/api/list", (req: Request, res: Response) => {
   mirrorHeaders(req, res);
   res.json(items);
 });
 
-app.post("/api/items", (req: Request, res: Response) => {
+app.post("/api/item", (req: Request, res: Response) => {
   mirrorHeaders(req, res);
   const newItem = req.body;
   items.push(newItem);
   res.status(201).json(newItem);
 });
 
-app.put("/api/items/:index", (req: Request, res: Response) => {
+app.put("/api/item/:index", (req: Request, res: Response) => {
   mirrorHeaders(req, res);
   const index = parseInt(req.params.index);
   if (items[index]) res.json((items[index] = req.body));
   else res.status(404).send("Item not found");
 });
 
-app.delete("/api/items/:index", (req: Request, res: Response) => {
+app.delete("/api/item/:index", (req: Request, res: Response) => {
   mirrorHeaders(req, res);
   const index = parseInt(req.params.index);
   if (items[index]) res.json(items.splice(index, 1));

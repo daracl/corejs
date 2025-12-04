@@ -1,5 +1,5 @@
 // tests/setup.ts
-import { Ajax } from "@/Ajax";
+import { Ajax } from "@/ajax/Ajax";
 import app from "../../api/server";
 
 let server: any;

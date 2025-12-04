@@ -16,6 +16,8 @@ export * from "./objectToQueryString";
 export * from "./replaceParameter";
 export * from "./str";
 export * from "./uuid";
+export * from "./isFormData";
+
 
 
 

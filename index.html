@@ -10,6 +10,18 @@
 
   <body onload="init()">
     <div style="padding: 10px">
+      <h2>Ajax</h2>
+      <table>
+        <tr>
+          <td> 
+            <div><button type="button" onclick="ajaxGet();">get</button></div>
+            <div><button type="button" onclick="ajaxPost();">post</button></div>
+          </td>
+          <td>
+            <textarea id="ajaxGetResult" style="height: 168px; width: 874px;"></textarea>
+          </td>
+        </tr>
+      </table>
       <h2>Loading</h2>
       <table>
         <tr>
@@ -100,5 +112,27 @@
   };
   
 })();
+
+function ajaxGet(){
+  Daracl.ajax.create().request({url :"http://localhost:3000/api/list", method:"GET",loaderContainer:"body", headers:{aaa:"bbb",ccc:"dddd"}}).then((res)=>{
+      console.log(res);
+      document.getElementById('ajaxGetResult').value = JSON.stringify(res);
+  }).catch(err=>{
+      console.log('aaa : ',err);
+  });
+}
+
+let ajaxIdx = 0;
+function ajaxPost(){
+  Daracl.ajax.create().request({url :"http://localhost:3000/api/item", method:"POST",loaderContainer:"body"
+    , headers:{aaa:"bbb",ccc:"dddd"}
+    , data : { name: "test"+ajaxIdx, age: 35+ajaxIdx }
+  }).then((res)=>{
+      console.log(res);
+      document.getElementById('ajaxGetResult').value = JSON.stringify(res);
+  }).catch(err=>{
+      console.log('aaa : ',err);
+  });
+}
 
 </script>

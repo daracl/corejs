@@ -1,4 +1,4 @@
-import {Ajax} from "./Ajax";
+import {Ajax} from "./ajax/Ajax";
 import * as utils from "./utils";
 import {Loading} from "./Loading";
 import * as dom from "./common/dom";
