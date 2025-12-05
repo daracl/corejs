@@ -1,4 +1,4 @@
-import { deepMerge } from "./deepMerge";
+import { objectDeepMerge } from "./deepMerge";
 import { isArray } from "./isArray";
 import { isPlainObject } from "./isPlainObject";
 
@@ -12,13 +12,13 @@ export const deepCopy = (copyValue: any): any => {
     let reval = [];
     for (let value of copyValue) {
       if (isPlainObject(value)) {
-        reval.push(deepMerge({}, value));
+        reval.push(objectDeepMerge({}, value));
       } else {
         reval.push(value);
       }
     }
     return reval;
   } else {
-    return deepMerge({}, copyValue);
+    return objectDeepMerge({}, copyValue);
   }
 };

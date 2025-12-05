@@ -1,4 +1,4 @@
-import { AjaxOptions } from "@t/web/AjaxOptions";
+import { AjaxOptions, GlobalAjaxOptions } from "@t/web/AjaxOptions";
 import { hasProperty, isFormData, isObject , objectToQueryString } from "@/utils";
 import { Loading } from "@/Loading";
 import { AjaxAbstract } from "./AjaxAbstract";
@@ -10,7 +10,7 @@ import { AjaxAbstract } from "./AjaxAbstract";
  */
 export class XHRAjax extends AjaxAbstract {
   
-  constructor(options: AjaxOptions) {
+  constructor(options: GlobalAjaxOptions) {
      super(options);
   }
 
@@ -28,11 +28,9 @@ export class XHRAjax extends AjaxAbstract {
       }
      
       // GET 요청이면 쿼리스트링으로 처리 (FormData인 경우는 URL에 붙이지 않음)
-      const finalUrl = this.getUrlWithData(opts.baseUrl+url, method, preparedData);
+      const finalUrl = this.getUrlWithData(url, method, preparedData);
 
       xhr.open(method, finalUrl, opts.async !== false);
-
-      console.log("XHRAjax request", method, finalUrl, opts);
 
       if (opts.timeout && opts.timeout > 0) xhr.timeout = opts.timeout;
 
@@ -60,6 +58,7 @@ export class XHRAjax extends AjaxAbstract {
       if (method === "GET" || !preparedData) {
         xhr.send();
       } else if (isFormData(preparedData)) {
+        
         xhr.send(preparedData);
       } else if (isObject(preparedData)) {
         // JSON 전송을 기본으로 하되 headers에서 Content-Type이 다른 값으로 설정되어 있으면 그 값을 따름
@@ -135,8 +134,7 @@ export class XHRAjax extends AjaxAbstract {
   // 요청 준비를 처리합니다.
   private prepareRequest(opts: AjaxOptions, xhr: XMLHttpRequest) {
     let loadingInstance: Loading | null = null;
-    let loaderSelector =
-      opts.loaderContainer || (opts.enableDefaultLoader ? this.options.loaderContainer || "body" : null);
+    const loaderSelector = this.getLoaderContainerSelector(opts);
 
     if (loaderSelector){
       loadingInstance = new Loading(loaderSelector, opts.loaderOption);

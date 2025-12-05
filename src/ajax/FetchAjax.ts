@@ -1,4 +1,4 @@
-import { AjaxOptions } from "@t/web/AjaxOptions";
+import { AjaxOptions, GlobalAjaxOptions } from "@t/web/AjaxOptions";
 import { Loading } from "@/Loading";
 import { isObject, objectToQueryString } from "@/utils";
 import { AjaxAbstract } from "./AjaxAbstract";
@@ -11,7 +11,7 @@ import { isFormData } from "@/utils/isFormData";
  */
 export class FetchAjax extends AjaxAbstract {
   
-  constructor(options: AjaxOptions) {
+  constructor(options: GlobalAjaxOptions) {
     super(options);
   }
 
@@ -26,7 +26,7 @@ export class FetchAjax extends AjaxAbstract {
       preparedData = this.buildFormDataFromObject(opts.data);
     }
 
-    const finalUrl = this.getUrlWithData(opts.baseUrl+url, method, preparedData);
+    const finalUrl = this.getUrlWithData(url, method, preparedData);
 
     const { loadingInstance, abortController } = this.prepareRequest(opts);
 
@@ -131,8 +131,7 @@ export class FetchAjax extends AjaxAbstract {
   private prepareRequest(opts: AjaxOptions): { loadingInstance: Loading | null; abortController: AbortController | null } {
     let loadingInstance: Loading | null = null;
     let abortController: AbortController | null = null;
-    const loaderSelector =
-      opts.loaderContainer || (opts.enableDefaultLoader ? this.options.loaderContainer || "body" : null);
+    const loaderSelector = this.getLoaderContainerSelector(opts);
 
     if (loaderSelector) {
       loadingInstance = new Loading(loaderSelector, opts.loaderOption);
@@ -150,6 +149,7 @@ export class FetchAjax extends AjaxAbstract {
 
     return { loadingInstance, abortController };
   }
+  
 
   // 응답 headers를 파싱합니다.
   private parseFetchHeaders(response: Response) {

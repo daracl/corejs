@@ -2,7 +2,8 @@ import { setupTestEnvironment, getAjaxInstance } from "./test-setup";
 
 setupTestEnvironment(); // beforeAll / afterAll 자동 적용
 
-describe("Ajax POST /api/items", () => {
+describe("Ajax POST test", () => {
+
   it("should return posted data", async () => {
     const ajax = getAjaxInstance();
     const payload = { aaa: "bbbb" };
@@ -37,10 +38,9 @@ describe("Ajax POST /api/items", () => {
     expect(res.status).toBeLessThan(300);
 
     // 서버가 필드/파일 정보를 에코하면 추가 검증
-    if (res.data && typeof res.data === "object") {
-      if ("aaa" in res.data) expect((res.data as any).aaa).toBe("bbbb");
-      if ("fileName" in res.data) expect((res.data as any).fileName).toBe("test.txt");
-      if ("file" in res.data) expect((res.data as any).file).toBeDefined();
-    }
+    expect(res.data.aaa).toBe("bbbb");
+    expect(res.data.file.originalName).toBe("test.txt");
+    
+    
   });
 });

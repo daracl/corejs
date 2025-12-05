@@ -16,6 +16,7 @@
           <td> 
             <div><button type="button" onclick="ajaxGet();">get</button></div>
             <div><button type="button" onclick="ajaxPost();">post</button></div>
+            <div><button type="button" onclick="ajaxFileUpload();">post file upload</button></div>
           </td>
           <td>
             <textarea id="ajaxGetResult" style="height: 168px; width: 874px;"></textarea>
@@ -109,12 +110,20 @@
 
   window.init = function  () {
     loadingView()
+    initAjax();
   };
   
 })();
 
+let ajax;
+
+function initAjax(){
+  ajax = Daracl.ajax.create({baseUrl :"http://localhost:3000"}); // 전역 설정
+}
 function ajaxGet(){
-  Daracl.ajax.create().request({url :"http://localhost:3000/api/list", method:"GET",loaderContainer:"body", headers:{aaa:"bbb",ccc:"dddd"}}).then((res)=>{
+  ajax.get("/api/list", {loaderContainer:"body"
+    , data:{aaa:"bbb",ccc:"dddd"}
+  }).then((res)=>{
       console.log(res);
       document.getElementById('ajaxGetResult').value = JSON.stringify(res);
   }).catch(err=>{
@@ -124,7 +133,7 @@ function ajaxGet(){
 
 let ajaxIdx = 0;
 function ajaxPost(){
-  Daracl.ajax.create().request({url :"http://localhost:3000/api/item", method:"POST",loaderContainer:"body"
+  ajax.post("/api/item", {loaderContainer:"body"
     , headers:{aaa:"bbb",ccc:"dddd"}
     , data : { name: "test"+ajaxIdx, age: 35+ajaxIdx }
   }).then((res)=>{
@@ -134,5 +143,25 @@ function ajaxPost(){
       console.log('aaa : ',err);
   });
 }
+
+function ajaxFileUpload(){
+  ++ajaxIdx;
+
+  const form = new FormData();
+  form.append("name", "test"+ajaxIdx);
+  form.append("age", 35+ajaxIdx);
+  const file = new File(["hello world"], "test.txt", { type: "text/plain" });
+  form.append("file", file);
+
+  ajax.post("/api/item",{loaderContainer:"body"
+    , headers:{aaa:"bbb",ccc:"dddd"}
+    , data : form
+  }).then((res)=>{
+      console.log(res);
+      document.getElementById('ajaxGetResult').value = JSON.stringify(res);
+  }).catch(err=>{
+      console.log('aaa : ',err);
+  });
+} 
 
 </script>

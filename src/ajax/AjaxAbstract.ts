@@ -1,15 +1,13 @@
-import { AjaxOptions } from "@t/web/AjaxOptions";
-import { FetchAjax } from "./FetchAjax";
-import { XHRAjax } from "./XHRAjax";
-import { deepMerge, isFormData, isObject, objectToQueryString } from "@/utils";
+import { AjaxOptions, GlobalAjaxOptions } from "@t/web/AjaxOptions";
+import { isArray, isFormData, isObject, objectToQueryString } from "@/utils";
 
 /**
  * Ajax 클래스
  */
 export abstract class AjaxAbstract {
-  protected options: AjaxOptions;
+  protected options: GlobalAjaxOptions;
 
-  constructor(options: AjaxOptions) {
+  constructor(options: GlobalAjaxOptions) {
     this.options = options;
   }
 
@@ -20,7 +18,7 @@ export abstract class AjaxAbstract {
     if (!data) return false;
     if (typeof File !== "undefined" && (data instanceof File || data instanceof Blob)) return true;
     if (typeof FileList !== "undefined" && data instanceof FileList) return true;
-    if (Array.isArray(data)) {
+    if (isArray(data)) {
       for (const item of data) {
         if (this.containsFile(item)) return true;
       }
@@ -41,6 +39,10 @@ export abstract class AjaxAbstract {
     if (isFormData(data)) return url;
     const qs = objectToQueryString(data);
     return url + (url.includes("?") ? "&" : "?") + qs;
+  }
+
+  protected getLoaderContainerSelector(opts: AjaxOptions) {
+    return opts.loaderContainer || (this.options.enableDefaultLoader ? this.options.loaderContainer || "body" : null);
   }
 
     // 단순 객체(파일 포함 가능)를 FormData로 변환

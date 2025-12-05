@@ -31,7 +31,7 @@ async function stopServer() {
 /**
  * Ajax 인스턴스 생성
  */
-function createAjaxInstance(baseUrl = "http://localhost:4000", timeout = 5000) {
+function createAjaxInstance(baseUrl = "http://localhost:4000", timeout = -1) {
   ajax = new Ajax({ baseUrl, timeout });
   return ajax;
 }
@@ -42,6 +42,17 @@ function createAjaxInstance(baseUrl = "http://localhost:4000", timeout = 5000) {
 function getAjaxInstance() {
   if (!ajax) throw new Error("Ajax instance not created. Call createAjaxInstance first.");
   return ajax;
+}
+
+if (typeof (global as any).setImmediate === "undefined") {
+  (global as any).setImmediate = (fn: (...args: any[]) => void, ...args: any[]) => {
+    return setTimeout(fn, 0, ...args);
+  };
+}
+if (typeof (global as any).clearImmediate === "undefined") {
+  (global as any).clearImmediate = (id: any) => {
+    clearTimeout(id);
+  };
 }
 
 /**

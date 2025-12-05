@@ -1,7 +1,7 @@
-import { AjaxOptions } from "@t/web/AjaxOptions";
+import { AjaxOptions, GlobalAjaxOptions } from "@t/web/AjaxOptions";
 import { FetchAjax } from "./FetchAjax";
 import { XHRAjax } from "./XHRAjax";
-import { deepMerge } from "@/utils";
+import { objectDeepMerge } from "@/utils";
 
 /**
  * Ajax 클래스
@@ -16,19 +16,18 @@ export class Ajax {
   // 브라우저에서 Fetch API 지원 여부
   private isFetchSupported: boolean;
 
-  private options: AjaxOptions;
+  private options: GlobalAjaxOptions;
 
-  constructor(options?: AjaxOptions) {
-    this.options = deepMerge({}, this.createDefaultOptions(), options || {});
+  constructor(options?: GlobalAjaxOptions) {
+    this.options = objectDeepMerge(this.createGlobalAjaxOptions(), options || {});
     this.fetchAjax = new FetchAjax(this.options);
     this.xhrAjax = new XHRAjax(this.options);
     this.isFetchSupported =  typeof window !== "undefined" && "fetch" in window;
   }
 
-  createDefaultOptions(): AjaxOptions {
+  createGlobalAjaxOptions(): GlobalAjaxOptions {
     return {
       baseUrl: "",
-      url: "",
       method: "POST",
       timeout: -1,
       responseType: "json",
@@ -42,6 +41,21 @@ export class Ajax {
     };
   }
 
+  createDefaultOptions(): AjaxOptions {
+    
+    return {
+      url: "",
+      method: this.options.method,
+      timeout: this.options.timeout,
+      responseType: this.options.responseType,
+      headers: this.options.headers,
+      loaderContainer: "",
+      loaderOption: {},
+      errorAlertView: this.options.errorAlertView,
+      ignoreResultCheck: this.options.ignoreResultCheck,
+    };
+  }
+
   /**
    * Ajax 인스턴스를 생성합니다.
    * @param {?AjaxOptions} [options]  ajax 옵션
@@ -51,8 +65,11 @@ export class Ajax {
     return new Ajax(options);
   }
 
-  private _request(url: string, method?: string, options?: AjaxOptions, useFetch: boolean = true) {
-    const opts = deepMerge({}, this.options, options || {});
+  private _request(url: string, method?: string, options?: AjaxOptions, useFetch: boolean = true): Promise<any> {
+    url = this.options.baseUrl ? this.options.baseUrl + url : url;
+    const data = options?.data;
+    const opts = objectDeepMerge(this.createDefaultOptions(), options || {}, {_excludeKeys:["data"]});
+    opts.data = data;
 
     const ajaxMethod = (method || opts.method || "GET").toUpperCase();
 
@@ -69,8 +86,6 @@ export class Ajax {
           }
         );
     }
-
-    console.log('1111111', url, ajaxMethod, opts);
     
     opts.loaderContainer = opts.loaderContainer || (opts.enableDefaultLoader ? this.options.loaderContainer || "body" : null);
 
@@ -87,7 +102,7 @@ export class Ajax {
    * @param {boolean} [useFetch=true] Fetch API 사용 여부
    * @returns {*} 
    */
-  request(options?: AjaxOptions, useFetch: boolean = true) {
+  public request(options?: AjaxOptions, useFetch: boolean = true): Promise<any> {
     const url = options?.url || "";
     return this._request(url, options?.method, options, useFetch);
   }
@@ -100,7 +115,7 @@ export class Ajax {
    * @param {boolean} [useFetch=true] Fetch API 사용 여부
    * @returns {*} 
    */
-  get(url: string, options?: AjaxOptions, useFetch: boolean = true) {
+  public get(url: string, options?: AjaxOptions, useFetch: boolean = true): Promise<any> {
     return this._request(url, "GET", options, useFetch);
   }
 
@@ -112,7 +127,7 @@ export class Ajax {
    * @param {boolean} [useFetch=true] Fetch API 사용 여부
    * @returns {*} 
    */
-  post(url: string, options?: AjaxOptions, useFetch: boolean = true) {
+  public post(url: string, options?: AjaxOptions, useFetch: boolean = true): Promise<any> {
     return this._request(url, "POST", options, useFetch);
   }
 
@@ -124,7 +139,7 @@ export class Ajax {
    * @param {boolean} [useFetch=true] Fetch API 사용 여부
    * @returns {*} 
    */
-  put(url: string, options?: AjaxOptions, useFetch: boolean = true) {
+  public put(url: string, options?: AjaxOptions, useFetch: boolean = true): Promise<any> {
     return this._request(url, "PUT", options, useFetch);
   }
 
@@ -137,7 +152,7 @@ export class Ajax {
    * @param {boolean} [useFetch=true] Fetch API 사용 여부
    * @returns {*} 
    */
-  delete(url: string, options?: AjaxOptions, useFetch: boolean = true) {
+  public delete(url: string, options?: AjaxOptions, useFetch: boolean = true): Promise<any> {
     return this._request(url, "DELETE", options, useFetch);
   }
 }

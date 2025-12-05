@@ -5,7 +5,9 @@ setupTestEnvironment(); // beforeAll / afterAll 자동 적용
 describe("Ajax GET /api/list", () => {
   it("should return data array", async () => {
     const ajax = getAjaxInstance();
+    
     const res = await ajax.get("/api/list");
+
     expect(res.data).toBeDefined();
     expect(Array.isArray(res.data)).toBe(true);
   });
