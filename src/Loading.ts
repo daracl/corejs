@@ -1,9 +1,11 @@
 import { LoadingOptions } from "@t/LoadingOptions";
-import { isBlank } from "./utils";
+import { isBlank, objectDeepMerge } from "./utils";
 
 
 const instanceMap: Record<string, Loading> = {};
 const centerLoadingIntervalObject: Record<string, number> = {};
+
+let G_LOADING_IDX =0;
 
 let defaultOptions:Required<LoadingOptions> = {
   //  사라지는 시간
@@ -16,7 +18,7 @@ let defaultOptions:Required<LoadingOptions> = {
   // background color
   bgColor: "#ffffff",
   // z-index
-  zIndex: 9999998,
+  zIndex: 9999,
   // opacity
   opacity: "0.3",
   // 이미지 경로 및 base64 코드
@@ -41,6 +43,7 @@ export class Loading {
 
   private selector: string;
   private containerNode: HTMLElement | null;
+  private loadingElement: HTMLElement | null;
   private options: Required<LoadingOptions>;
   private orginStylePosition = "";
 
@@ -61,7 +64,7 @@ export class Loading {
 
     if (!this.containerNode) return;
 
-    this.options = Object.assign({}, defaultOptions, options);
+    this.options = objectDeepMerge(defaultOptions, options);
     instanceMap[this.selector] = this;
 
     this.show();
@@ -99,7 +102,7 @@ export class Loading {
     const containerNode = this.containerNode;
     if (!containerNode) return;
 
-    if (containerNode.querySelector(".daracl-cl")) return;
+    if (containerNode.querySelector(":scope >.daracl-cl")) return;
 
     this.orginStylePosition = containerNode.style.position;
     const computedStyle = getComputedStyle(containerNode);
@@ -110,8 +113,13 @@ export class Loading {
 
     const opts = this.options;
 
+    let zIndex = opts.zIndex;
+    if(defaultOptions.zIndex == opts.zIndex){
+      zIndex += ++G_LOADING_IDX;
+    }
+
     let template = `
-      <div class="daracl-cl" style="cursor: ${opts.cursor}; top: 0px; left: 0px; z-index: ${opts.zIndex}; position: absolute; width: 100%; height: 100%;">
+      <div class="daracl-cl" style="cursor: ${opts.cursor}; top: 0px; left: 0px; z-index: ${zIndex}; position: absolute; width: 100%; height: 100%;">
         <div style="position: absolute; background: ${opts.bgColor}; opacity: ${opts.opacity}; width: 100%; height: 100%; z-index: 1"></div>
         <div style="z-index: 10; text-align: center; margin: 0; position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%)">
           ${
@@ -134,14 +142,15 @@ export class Loading {
 
     containerNode.insertAdjacentHTML("afterbegin", template);
 
+    this.loadingElement = containerNode.querySelector(":scope >.daracl-cl");
+
     if (opts.enableCancelButton) {
-      containerNode
-        .querySelector(".daracl-cl-btn")
+      this.loadingElement?.querySelector(".daracl-cl-btn")
         ?.addEventListener("click", () => this.cancelHandler());
     }
 
     if (opts.enableTime) {
-      const loadingTimeElement = containerNode.querySelector(".daracl-cl-time") as HTMLElement;
+      const loadingTimeElement = this.loadingElement?.querySelector(".daracl-cl-time") as HTMLElement;
       let sec = 0;
       centerLoadingIntervalObject[this.selector] = window.setInterval(() => {
         loadingTimeElement.innerText = `${++sec}`;
@@ -163,10 +172,9 @@ export class Loading {
   public setContent (content: string){
     if (!this.containerNode) return;
 
-    const existing = this.containerNode.querySelector(".daracl-cl-content");
+    const existing = this.loadingElement?.querySelector(".daracl-cl-content");
     if (!existing) {
-      this.containerNode
-        .querySelector(".daracl-cl-image")
+      this.loadingElement?.querySelector(".daracl-cl-image")
         ?.insertAdjacentHTML("afterend", `<div class="daracl-cl-content">${content}</div>`);
     } else {
       existing.innerHTML = content;
@@ -184,7 +192,8 @@ export class Loading {
     if (this.containerNode) {
       this.containerNode.style.position = this.orginStylePosition || "";
 
-      const loadingEle = this.containerNode.querySelector(".daracl-cl");
+      const loadingEle = this.containerNode.querySelector(":scope >.daracl-cl");
+
       if (loadingEle) {
         this.containerNode.removeChild(loadingEle);
       }

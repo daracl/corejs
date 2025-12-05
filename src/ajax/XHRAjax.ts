@@ -134,18 +134,18 @@ export class XHRAjax extends AjaxAbstract {
   // 요청 준비를 처리합니다.
   private prepareRequest(opts: AjaxOptions, xhr: XMLHttpRequest) {
     let loadingInstance: Loading | null = null;
-    const loaderSelector = this.getLoaderContainerSelector(opts);
+    const loaderSelector = opts.loaderContainer;
 
     if (loaderSelector){
-      loadingInstance = new Loading(loaderSelector, opts.loaderOption);
       if (opts.loaderOption?.enableCancelButton) {
-        
         const originalCallback = opts.loaderOption.callback;
         opts.loaderOption.callback = () => {
-          if (originalCallback) originalCallback(opts);
           xhr.abort();
+          if (originalCallback) originalCallback(opts);
         };
       }
+
+      loadingInstance = new Loading(loaderSelector, opts.loaderOption);
     }
 
     if (opts.beforeRequest) opts.beforeRequest.call(null, opts, null, loadingInstance);

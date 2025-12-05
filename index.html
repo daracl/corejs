@@ -17,6 +17,8 @@
             <div><button type="button" onclick="ajaxGet();">get</button></div>
             <div><button type="button" onclick="ajaxPost();">post</button></div>
             <div><button type="button" onclick="ajaxFileUpload();">post file upload</button></div>
+            <div><button type="button" onclick="ajaxLoader();">ajax loader</button></div>
+            <div><button type="button" onclick="ajaxErr500();">ajax error</button></div>
           </td>
           <td>
             <textarea id="ajaxGetResult" style="height: 168px; width: 874px;"></textarea>
@@ -141,6 +143,35 @@ function ajaxPost(){
       document.getElementById('ajaxGetResult').value = JSON.stringify(res);
   }).catch(err=>{
       console.log('aaa : ',err);
+  });
+}
+
+function ajaxLoader(){
+  ajax.get("/api/longtime", {
+    loaderContainer:"body"
+    ,loaderOption:{
+      enableCancelButton: true,
+      callback: function () {
+        console.log("1111111");
+      },
+    }
+    , data:{aaa:"bbb",ccc:"dddd"}
+  },false).then((res)=>{
+      console.log(res);
+      document.getElementById('ajaxGetResult').value = JSON.stringify(res);
+  }).catch(err=>{
+      console.log('ajaxLoader error : ',err);
+  });
+}
+
+function ajaxErr500(){
+  ajax.get("/api/err500", {loaderContainer:"body"
+    , data:{aaa:"bbb",ccc:"dddd"}
+  }).then((res)=>{
+      console.log(res);
+      document.getElementById('ajaxGetResult').value = JSON.stringify(res);
+  }).catch(err=>{
+      console.log('error : ',err);
   });
 }
 

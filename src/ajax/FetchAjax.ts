@@ -33,7 +33,9 @@ export class FetchAjax extends AjaxAbstract {
     // timeout 처리
     let timeoutId: any = null;
     if (opts.timeout && opts.timeout > 0 && abortController) {
-      timeoutId = setTimeout(() => abortController.abort(), opts.timeout);
+      timeoutId = setTimeout(() =>{
+        abortController.abort()
+       }, opts.timeout);
     }
 
     // 요청 바디 / 헤더 준비
@@ -131,18 +133,19 @@ export class FetchAjax extends AjaxAbstract {
   private prepareRequest(opts: AjaxOptions): { loadingInstance: Loading | null; abortController: AbortController | null } {
     let loadingInstance: Loading | null = null;
     let abortController: AbortController | null = null;
-    const loaderSelector = this.getLoaderContainerSelector(opts);
+    const loaderSelector = opts.loaderContainer;
 
     if (loaderSelector) {
-      loadingInstance = new Loading(loaderSelector, opts.loaderOption);
       if (opts.loaderOption?.enableCancelButton && typeof AbortController !== "undefined") {
         abortController = new AbortController();
         const originalCallback = opts.loaderOption.callback;
         opts.loaderOption.callback = () => {
-          if (originalCallback) originalCallback(opts);
           abortController!.abort();
+          if (originalCallback) originalCallback(opts);
         };
       }
+
+      loadingInstance = new Loading(loaderSelector, opts.loaderOption);
     }
 
     if (opts.beforeRequest) opts.beforeRequest.call(null, opts, null, loadingInstance);

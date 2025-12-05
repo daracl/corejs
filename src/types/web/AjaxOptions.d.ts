@@ -1,4 +1,5 @@
 import { ajaxCallback } from "@t/callbackFunction";
+import { LoadingOptions } from "../LoadingOptions";
 
 
 export interface GlobalAjaxOptions {
@@ -11,7 +12,7 @@ export interface GlobalAjaxOptions {
   headers?: any;
   enableDefaultLoader?: boolean;
   loaderContainer?: string | HTMLElement;
-  loaderOption?: any;
+  loaderOption?: LoadingOptions;
   validMethods?: string[];
   beforeRequest?: ajaxCallback;
   beforeResponse?: ajaxCallback;
@@ -30,7 +31,7 @@ export interface AjaxOptions {
   errorAlertView?: boolean;
   headers?: any;
   loaderContainer?: string | HTMLElement;
-  loaderOption?: any;
+  loaderOption?: LoadingOptions;
   beforeRequest?: ajaxCallback;
   beforeResponse?: ajaxCallback;
 }

@@ -87,11 +87,19 @@ export class Ajax {
         );
     }
     
-    opts.loaderContainer = opts.loaderContainer || (opts.enableDefaultLoader ? this.options.loaderContainer || "body" : null);
+    opts.loaderContainer = opts.loaderContainer || (this.options.enableDefaultLoader ? this.options.loaderContainer || "body" : null);
 
-    return this.isFetchSupported && useFetch
+    const returnPromise =  this.isFetchSupported && useFetch
       ? this.fetchAjax.request(url, ajaxMethod, opts)
       : this.xhrAjax.request(url, ajaxMethod, opts);
+
+    return returnPromise.then((response:any)=>{
+      if(response.loadingInstance) response.loadingInstance.hide();
+      return Promise.resolve(response);
+    }).catch((error:any)=>{
+      if(error.loadingInstance) error.loadingInstance.hide();
+      return Promise.reject(error);
+    })
   }
 
   /**

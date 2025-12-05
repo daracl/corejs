@@ -41,11 +41,7 @@ export abstract class AjaxAbstract {
     return url + (url.includes("?") ? "&" : "?") + qs;
   }
 
-  protected getLoaderContainerSelector(opts: AjaxOptions) {
-    return opts.loaderContainer || (this.options.enableDefaultLoader ? this.options.loaderContainer || "body" : null);
-  }
-
-    // 단순 객체(파일 포함 가능)를 FormData로 변환
+  // 단순 객체(파일 포함 가능)를 FormData로 변환
   protected buildFormDataFromObject(obj: any): FormData {
     const form = new FormData();
 

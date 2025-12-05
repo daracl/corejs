@@ -115,4 +115,22 @@ app.post("/api/upload", upload.single("file"), (req: Request, res: Response) => 
   res.status(201).json(responsePayload);
 });
 
+app.get("/api/longtime", async (req: Request, res: Response) => {
+  mirrorHeaders(req, res);
+  // 5초 대기
+  await new Promise((resolve) => setTimeout(resolve, 5000));
+  res.json({ message: "completed", delayMs: 5000 });
+});
+
+app.get("/api/err500", async (req: Request, res: Response) => {
+  mirrorHeaders(req, res);
+
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+  res.status(500).json({
+    error: "Internal Server Error",
+    message: "Simulated 500 error for testing purposes"
+  });
+});
+
+
 export default app;
