@@ -16,6 +16,7 @@ export interface GlobalAjaxOptions {
   validMethods?: string[];
   beforeRequest?: ajaxCallback;
   beforeResponse?: ajaxCallback;
+  fetchMode?: "fetch"|"xhr";
 }
 
 
@@ -34,4 +35,6 @@ export interface AjaxOptions {
   loaderOption?: LoadingOptions;
   beforeRequest?: ajaxCallback;
   beforeResponse?: ajaxCallback;
+  onUploadProgress?: OptionCallback;
+  onDownloadProgress?: OptionCallback;
 }

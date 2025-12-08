@@ -156,7 +156,7 @@ function ajaxLoader(){
       },
     }
     , data:{aaa:"bbb",ccc:"dddd"}
-  },false).then((res)=>{
+  }, false).then((res)=>{
       console.log(res);
       document.getElementById('ajaxGetResult').value = JSON.stringify(res);
   }).catch(err=>{

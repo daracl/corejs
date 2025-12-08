@@ -38,21 +38,22 @@ export class Ajax {
       validMethods: ["GET", "POST", "PUT", "DELETE"],
       errorAlertView: false,
       ignoreResultCheck: false,
+      fetchMode : "xhr",
     };
   }
 
   createDefaultOptions(): AjaxOptions {
-    
+    const opts = this.options;
     return {
       url: "",
-      method: this.options.method,
-      timeout: this.options.timeout,
-      responseType: this.options.responseType,
-      headers: this.options.headers,
+      method: opts.method,
+      timeout: opts.timeout,
+      responseType: opts.responseType,
+      headers: opts.headers,
       loaderContainer: "",
       loaderOption: {},
-      errorAlertView: this.options.errorAlertView,
-      ignoreResultCheck: this.options.ignoreResultCheck,
+      errorAlertView: opts.errorAlertView,
+      ignoreResultCheck: opts.ignoreResultCheck,
     };
   }
 
@@ -89,7 +90,7 @@ export class Ajax {
     
     opts.loaderContainer = opts.loaderContainer || (this.options.enableDefaultLoader ? this.options.loaderContainer || "body" : null);
 
-    const returnPromise =  this.isFetchSupported && useFetch
+    const returnPromise =  this.isFetchSupported && this.options.fetchMode == 'fetch'
       ? this.fetchAjax.request(url, ajaxMethod, opts)
       : this.xhrAjax.request(url, ajaxMethod, opts);
 

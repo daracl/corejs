@@ -1,6 +1,8 @@
 import { isArray, isBlank, isString } from "@/utils";
 
 
+type ElementType = Element | string | NodeList | Document | Element[]| null | undefined;
+
 /**
  * DOM 셀럭터 리스트 반환
  *
@@ -8,7 +10,7 @@ import { isArray, isBlank, isString } from "@/utils";
  * @param {(Element | string | NodeList | Document | Element[])} el 
  * @returns {Node[]} 
  */
-export function $querySelectorList(el: Element | string | NodeList | Document | Element[]): Node[] {
+export function $querySelectorList(el: ElementType): Node[] {
 
   if(isBlank(el)){
     return [];
@@ -35,6 +37,37 @@ export function $querySelectorList(el: Element | string | NodeList | Document | 
   }
   
   return [];
+}
+
+export function $querySelector(el: ElementType): Document|Element|null {
+
+  if(isBlank(el)){
+    return null;
+  }
+
+  if (el instanceof Document) {
+    return document;
+  }
+
+  if (el instanceof Element) {
+    return el;
+  }
+
+  if (isString(el)) {
+    return document.querySelector(el)
+  }
+
+  if (isArray(el)) {
+    return el[0];
+  }
+
+  
+  if (el instanceof NodeList) {
+    return el.item(0) as Element;
+  }
+
+  return null;
+  
 }
 
 
@@ -72,4 +105,39 @@ export function getElementRect(
     width: rect.width,
     height: rect.height,
   };
+}
+
+
+/**
+ *
+ * @export
+ * @param {ElementType} el 
+ * @param {(Element | string)} renderElements 
+ */
+export function before(el: ElementType, renderElements: Element | string) {
+  insertAdjacentHTML($querySelectorList(el), "beforebegin", renderElements);
+}
+
+export function after(el: ElementType, renderElements: Element | string) {
+  insertAdjacentHTML($querySelectorList(el), "afterend", renderElements);
+}
+
+export function prepend(el: ElementType, renderElements: Element | string) {
+  insertAdjacentHTML($querySelectorList(el), "afterbegin", renderElements);
+}
+
+export function append(el: ElementType, renderElements: Element | string) {
+  insertAdjacentHTML($querySelectorList(el), "beforeend", renderElements);
+}
+
+function insertAdjacentHTML(elements: Node[], insertPosition: InsertPosition, renderElements: Element | string) {
+  if (isString(renderElements)) {
+    elements.forEach((el) => {
+      (el as Element).insertAdjacentHTML(insertPosition, renderElements);
+    });
+  } else {
+    elements.forEach((el) => {
+      (el as Element).insertAdjacentElement(insertPosition, renderElements);
+    });
+  }
 }

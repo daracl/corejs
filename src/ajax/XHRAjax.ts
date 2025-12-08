@@ -1,5 +1,5 @@
 import { AjaxOptions, GlobalAjaxOptions } from "@t/web/AjaxOptions";
-import { hasProperty, isFormData, isObject , objectToQueryString } from "@/utils";
+import { hasProperty, isFormData, isFunction, isObject , objectToQueryString } from "@/utils";
 import { Loading } from "@/Loading";
 import { AjaxAbstract } from "./AjaxAbstract";
 
@@ -37,28 +37,76 @@ export class XHRAjax extends AjaxAbstract {
       // headers 설정 — FormData 전송 시 Content-Type을 직접 설정하면 boundary가 깨지므로 설정하지 않음
       this.setHeaders(xhr, opts, hasFormData || containsFile);
 
+      // ...existing code...
+      xhr.open(method, finalUrl, opts.async !== false);
+
+      if (opts.timeout && opts.timeout > 0) xhr.timeout = opts.timeout;
+
+      // headers 설정 — FormData 전송 시 Content-Type을 직접 설정하면 boundary가 깨지므로 설정하지 않음
+      this.setHeaders(xhr, opts, hasFormData || containsFile);
+
+      // progress 콜백(업로드/다운로드) 등록
+      // opts.onUploadProgress?: (event: ProgressEvent, meta?: any) => void
+      // opts.onDownloadProgress?: (event: ProgressEvent, meta?: any) => void
+      const onUploadProgress = opts.onUploadProgress;
+      const onDownloadProgress = opts.onDownloadProgress;
+
+      if (isFunction(onUploadProgress) && xhr.upload) {
+        xhr.upload.onprogress = (ev: ProgressEvent) => {
+          try {
+            onUploadProgress({ xhr, ev });
+          } catch (e) {
+            onDownloadProgress({ xhr, ev , error : e });
+          }
+        };
+      }
+
+      if (isFunction(onDownloadProgress)) {
+        xhr.onprogress = (ev: ProgressEvent) => {
+          try {
+            onDownloadProgress({ xhr, ev });
+          } catch (e) {
+            onDownloadProgress({ xhr, ev , error : e });
+          }
+        };
+      }
+
       const { loadingInstance } = this.prepareRequest(opts, xhr);
 
+      let errorHandled = false; // 중복 reject 방지용
       xhr.onreadystatechange = () => {
         if (xhr.readyState === XMLHttpRequest.DONE) {
-          const response = this.parseResponse(xhr, opts);
           if (xhr.status >= 200 && xhr.status < 300) {
-            resolve({ ...response, loadingInstance });
-          } else {
-            reject(this.createError({ type: "http", xhr, loadingInstance, ...response }));
+            if (!errorHandled) {
+              const response = this.parseResponse(xhr, opts);
+              resolve({ ...response, loadingInstance });
+            } 
           }
         }
       };
 
-      xhr.onerror = () => reject(this.createError({ type: "network", xhr, loadingInstance }));
-      xhr.ontimeout = () => reject(this.createError({ type: "timeout", xhr, loadingInstance }));
-      xhr.onabort = () => reject(this.createError({ type: "abort", xhr, loadingInstance }));
+      xhr.onerror = () => {
+        if (errorHandled) return;
+        errorHandled = true;
+        reject(this.createError({ type: "network", xhr, loadingInstance }))
+      };
+
+      xhr.ontimeout = () => {
+        if (errorHandled) return;
+        errorHandled = true;
+        reject(this.createError({ type: "timeout", xhr, loadingInstance }))
+      };
+
+      xhr.onabort = () => {
+        if (errorHandled) return;
+        errorHandled = true;
+        reject(this.createError({ type: "abort", xhr, loadingInstance }))
+      }
 
       // 전송: GET 혹은 데이터가 없는 경우는 send(); FormData가 준비된 경우는 그대로 전송; JSON/Object일 경우 적절히 직렬화
       if (method === "GET" || !preparedData) {
         xhr.send();
       } else if (isFormData(preparedData)) {
-        
         xhr.send(preparedData);
       } else if (isObject(preparedData)) {
         // JSON 전송을 기본으로 하되 headers에서 Content-Type이 다른 값으로 설정되어 있으면 그 값을 따름
