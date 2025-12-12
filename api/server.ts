@@ -34,11 +34,15 @@ app.use("/uploads", express.static(uploadDir));
  * 요청 헤더를 그대로 응답 헤더로 설정
  */
 function mirrorHeaders(req: Request, res: Response) {
+  
+ const unsafeHeaders = ["content-length", "transfer-encoding", "connection"];
+
   for (const [key, value] of Object.entries(req.headers)) {
-    if (value) {
+    if (!unsafeHeaders.includes(key.toLowerCase())) {
       res.setHeader(key, Array.isArray(value) ? value.join(", ") : value as string);
     }
   }
+  
 }
 
 // Routes
@@ -115,6 +119,66 @@ app.post("/api/upload", upload.single("file"), (req: Request, res: Response) => 
   res.status(201).json(responsePayload);
 });
 
+// Multiple file upload endpoint
+app.post("/api/upload-multiple", upload.array("files", 10), (req: Request, res: Response) => {
+  mirrorHeaders(req, res);
+  
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).json({
+      error: "No files uploaded",
+      message: "Please provide at least one file",
+    });
+  }
+
+  const filesInfo = (req.files as Express.Multer.File[]).map((file) => ({
+    originalName: file.originalname,
+    fileName: file.filename,
+    mimeType: file.mimetype,
+    size: file.size,
+    path: `/uploads/${file.filename}`,
+  }));
+
+  const responsePayload = {
+    ...req.body,
+    files: filesInfo,
+    filesCount: filesInfo.length,
+    totalSize: filesInfo.reduce((sum, f) => sum + f.size, 0),
+  };
+
+  res.status(201).json(responsePayload);
+});
+
+// Multiple file upload to /api/item endpoint (alternative)
+app.post("/api/item-multiple", upload.array("files", 10), (req: Request, res: Response) => {
+  mirrorHeaders(req, res);
+  
+  const formFields = req.body || {};
+
+  if (!req.files || req.files.length === 0) {
+    // No files, just save form fields
+    const newItem = formFields;
+    items.push(newItem);
+    return res.status(201).json(newItem);
+  }
+
+  const filesInfo = (req.files as Express.Multer.File[]).map((file) => ({
+    originalName: file.originalname,
+    fileName: file.filename,
+    mimeType: file.mimetype,
+    size: file.size,
+    path: `/uploads/${file.filename}`,
+  }));
+
+  const newItem = {
+    ...formFields,
+    files: filesInfo,
+    filesCount: filesInfo.length,
+  };
+
+  items.push(newItem);
+  res.status(201).json(newItem);
+});
+
 app.get("/api/longtime", async (req: Request, res: Response) => {
   mirrorHeaders(req, res);
   // 5초 대기
@@ -132,5 +196,39 @@ app.get("/api/err500", async (req: Request, res: Response) => {
   });
 });
 
+// 파라미터 값을 response에 담아 반환하는 엔드포인트
+app.get("/api/header-value", (req: Request, res: Response) => {
+  mirrorHeaders(req, res);
+
+  // Query parameters 모두 추출
+  const queryParams = req.query;
+
+  // Request headers 모두 추출
+  const requestHeaders = req.headers;
+
+  res.json({
+    message: "Header and query parameters received",
+    queryParams: queryParams,
+    requestHeaders: requestHeaders,
+  });
+});
+
+app.options("*", (req, res) => {
+  res.status(404).json({
+    error: "Not Found",
+    message: `Cannot OPTIONS ${req.originalUrl}`
+  });
+});
+
+// 404 핸들러: 등록되지 않은 URL은 모두 404 반환
+app.use((req: Request, res: Response) => {
+  mirrorHeaders(req, res);
+  res.status(404).json({
+    error: "Not Found",
+    message: `Cannot ${req.method} ${req.path}`,
+    path: req.path,
+    method: req.method,
+  });
+});
 
 export default app;

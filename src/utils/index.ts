@@ -17,6 +17,9 @@ export * from "./replaceParameter";
 export * from "./str";
 export * from "./uuid";
 export * from "./isFormData";
+export * from "./getURLParams";
+
+
 
 
 

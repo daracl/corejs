@@ -1,3 +1,5 @@
+import { isObject } from "./isObject";
+
 /**
  * object to request query string 값 체크.
  *
@@ -9,7 +11,7 @@ export function objectToQueryString(param: any): string {
     .map((key) => {
       if (param.hasOwnProperty(key) && param[key] !== undefined) {
         const val = param[key];
-        return `${key}=${val}`;
+        return `${key}=${ isObject(val) ? JSON.stringify(val) : val }`;
       }
     })
     .filter(Boolean)

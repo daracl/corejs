@@ -32,8 +32,10 @@ export class FetchAjax extends AjaxAbstract {
 
     // timeout 처리
     let timeoutId: any = null;
+    let isTimeout = false;
     if (opts.timeout && opts.timeout > 0 && abortController) {
       timeoutId = setTimeout(() =>{
+        isTimeout = true; // 타임아웃 발생 표시
         abortController.abort()
        }, opts.timeout);
     }
@@ -119,9 +121,17 @@ export class FetchAjax extends AjaxAbstract {
         loadingInstance,
       };
     } catch (err: any) {
+      if (timeoutId) clearTimeout(timeoutId);
+      
+      // 타임아웃 여부 판단: AbortError 且 isTimeout 플래그가 true이면 timeout
+      let errorType: "network" | "http" | "timeout" | "abort" = "network";
+      if (err.name === "AbortError") {
+        errorType = isTimeout ? "timeout" : "abort";
+      }
+
       return Promise.reject(
         this.createError({
-          type: err.name === "AbortError" ? "abort" : "network",
+          type: errorType,
           error: err,
           loadingInstance,
         })

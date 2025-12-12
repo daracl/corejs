@@ -20,4 +20,5 @@ describe("str", () => {
   it("unXss", () => {
     expect(orginStr).toBe(str.unXss(replaceStr));
   });
+  
 });

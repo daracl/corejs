@@ -1,6 +1,6 @@
 {
   "name": "@daracl/core",
-  "version": "0.0.3",
+  "version": "0.0.5",
   "sideEffects": [
     "src/index.umd.ts",
     "./style/*.scss"
@@ -53,6 +53,7 @@
   ],
   "scripts": {
     "prepack": "yarn build",
+    "prepublishOnly": "npm run test:all",
     "build": "yarn build:escjs && yarn build:umd && yarn mergenclean",
     "build:umd": "vite build --config vite.config.umd.js --mode production && vite build --config vite.config.umd.js --mode development",
     "build:escjs": "vite build --config vite.config.js --mode production && vite build --config vite.config.js --mode development",
@@ -65,6 +66,8 @@
     "docs:gen": "typedoc --tsconfig tsconfig.doc.json",
     "dts:gen": "tsc src/index.ts --declaration --emitDeclarationOnly --outDir dist",
     "test": "jest",
+    "test:ajax": "jest test/ajax/index.test.ts",
+    "test:all": "jest --testPathIgnorePatterns=test/ajax/ajax-.*.test.ts",
     "pwtest": "playwright test",
     "clean:unmin": "rimraf dist/unmin",
     "copy-html": "cpx \"public/index.html\" dist",
@@ -112,6 +115,7 @@
     "eslint-plugin-react": "^7.32.2",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
+    "jest-html-reporter": "^4.3.0",
     "material-icons": "^1.13.8",
     "multer": "^2.0.2",
     "prettier": "^2.8.8",

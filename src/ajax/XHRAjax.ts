@@ -81,6 +81,8 @@ export class XHRAjax extends AjaxAbstract {
               const response = this.parseResponse(xhr, opts);
               resolve({ ...response, loadingInstance });
             } 
+          }else if(xhr.status > 0){
+            reject(this.createError({ type: "http", xhr, loadingInstance }))
           }
         }
       };

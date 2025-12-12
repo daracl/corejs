@@ -141,3 +141,28 @@ function insertAdjacentHTML(elements: Node[], insertPosition: InsertPosition, re
     });
   }
 }
+
+/**
+ * 상위 요소 탐색 유틸
+ *
+ * @param el - 탐색 시작 요소
+ * @param check - CSS 선택자 문자열 또는 상위 Element 객체
+ * @returns 조건에 맞는 상위 요소(Element) 또는 null
+ */
+export function findClosest(el: Element, check: string | Element): Element | null {
+  if (!el) return null;
+
+  // check가 문자열이면 CSS 선택자 기준 탐색
+  if (typeof check === "string") {
+    return el.closest(check);
+  }
+
+  // check가 Element 객체이면 상위 탐색
+  let current: Element | null = el;
+  while (current) {
+    if (current === check) return current;
+    current = current.parentElement;
+  }
+
+  return null;
+}

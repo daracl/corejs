@@ -210,26 +210,28 @@ export function lowerCase(str: string): string {
   return (str || "").toLowerCase();
 }
 
-function pad(str: any, size: number, ch: string, type: "l" | "r" = "l", clamp: boolean = false): string {
-  let chkStr = "";
+function pad(orginStr: any, size: number, ch: string, type: "l" | "r" = "l", clamp: boolean = false): string {
+  let str = "";
 
-  if (isEmpty(chkStr)) {
-    chkStr = "";
+  if (isEmpty(orginStr)) {
+    str = "";
   }else{
-    chkStr = isString(str) ? str : `${str}`;
+    str = isString(orginStr) ? orginStr : `${orginStr}`;
   }
+
+  const strLength = str.length;
 
    // 문자열이 padSize보다 길 때
-  if (chkStr.length > size) {
+  if (strLength > size) {
     return clamp
-      ? chkStr.slice(chkStr.length - size) // clamp=true → 뒤에서부터 l만큼 남김
-      : chkStr;                         // clamp=false → 그대로
+      ? str.slice(0, size) // clamp=true → 뒤에서부터 l만큼 남김
+      : str;                         // clamp=false → 그대로
   }
 
-
-  const len = size - chkStr.length;
-  if (len < 1) return chkStr;
+  const len = size - strLength;
+  if (len < 1) return str;
 
   const padStr = ch.repeat(len);
-  return type === "l" ? padStr + chkStr : chkStr + padStr;
+
+  return type === "l" ? padStr + str : str + padStr;
 }

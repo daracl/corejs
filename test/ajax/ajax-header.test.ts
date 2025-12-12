@@ -2,7 +2,7 @@ import { setupTestEnvironment, getAjaxInstance } from "./test-setup";
 
 setupTestEnvironment();
 
-describe("Ajax GET /api/items - Header Test", () => {
+describe("Ajax GET /api/list - Header Test", () => {
   it("should send custom headers", async () => {
     const ajax = getAjaxInstance();
 
@@ -11,14 +11,18 @@ describe("Ajax GET /api/items - Header Test", () => {
       "Authorization": "Bearer 12345",
     };
 
-    const res = await ajax.get("/api/items", { headers: customHeaders });
 
-    console.log('res.headers : ', res);
+    const res = await ajax.get("/api/header-value", { headers: customHeaders });
 
-    expect(res.headers).toBeDefined();
-    expect(res.headers["x-custom-header"]).toBe("my-header-value");
-    expect(res.headers["authorization"]).toBe("Bearer 12345");
+    expect(res.data).toBeDefined();
+    expect(res.data.requestHeaders).toBeDefined();
 
-    console.log("Response headers:", res.headers);
+    const requestHeaders = res.data.requestHeaders;
+
+    // 헤더는 모두 소문자로 들어옴
+    expect(requestHeaders["x-custom-header"]).toBe("my-header-value");
+    expect(requestHeaders["authorization"]).toBe("Bearer 12345");
+
+     console.log('res.headers : ', res.headers);
   });
 });

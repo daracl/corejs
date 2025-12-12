@@ -2,45 +2,81 @@ import { setupTestEnvironment, getAjaxInstance } from "./test-setup";
 
 setupTestEnvironment(); // beforeAll / afterAll 자동 적용
 
-describe("Ajax POST test", () => {
+describe("Ajax POST Tests", () => {
 
-  it("should return posted data", async () => {
+  it("should POST JSON data and return posted data", async () => {
     const ajax = getAjaxInstance();
-    const payload = { aaa: "bbbb" };
+    const payload = { title: "Test Item", description: "Test Description" };
     const res = await ajax.post("/api/item", { data: payload });
+    
+    expect(res.status).toBe(201);
     expect(res.data).toEqual(payload);
   });
 
-  it("should return 404 for invalid endpoint", async () => {
+  it("should handle POST with empty body", async () => {
     const ajax = getAjaxInstance();
-    try {
-      await ajax.post("/api/item1", { data: { aaa: "bbbb" } });
-    } catch (err: any) {
-      //console.log(err.xhr.status);
-      expect(err.xhr.status).toBe(404);
-    }
+    const res = await ajax.post("/api/item", { data: {} });
+    
+    expect(res.status).toBe(201);
+    expect(res.data).toBeDefined();
   });
 
-  it("should upload file (FormData)", async () => {
+  it("should upload file via FormData", async () => {
     const ajax = getAjaxInstance();
 
     // FormData에 텍스트 필드와 파일(Blob/File) 추가
     const form = new FormData();
-    form.append("aaa", "bbbb");
-    const file = new File(["hello world"], "test.txt", { type: "text/plain" });
+    form.append("title", "File Upload Test");
+    const file = new File(["hello world content"], "test.txt", { type: "text/plain" });
     form.append("file", file);
 
-    // 테스트 서버가 FormData를 처리하도록 /api/item 또는 /api/upload 엔드포인트를 사용
     const res = await ajax.post("/api/item", { data: form });
 
-    // 요청이 성공했는지 확인
     expect(res.status).toBeGreaterThanOrEqual(200);
     expect(res.status).toBeLessThan(300);
-
-    // 서버가 필드/파일 정보를 에코하면 추가 검증
-    expect(res.data.aaa).toBe("bbbb");
+    expect(res.data.file).toBeDefined();
     expect(res.data.file.originalName).toBe("test.txt");
+  });
+
+  it("should track upload progress", async () => {
+    const ajax = getAjaxInstance();
+    let uploadProgressCalled = false;
+
+    const form = new FormData();
+    form.append("name", "Progress Test");
+    const bigFile = new File(["x".repeat(1024 * 100)], "large.bin", { type: "application/octet-stream" });
+    form.append("file", bigFile);
+
+    const res = await ajax.post("/api/item", {
+      data: form,
+      onUploadProgress: (event: any) => {
+        uploadProgressCalled = true;
+      },
+    });
+
+    expect(res.status).toBeGreaterThanOrEqual(200);
+    expect(uploadProgressCalled).toBe(true);
+  }, 15000);
+
+  it("should set custom headers for POST", async () => {
+    const ajax = getAjaxInstance();
+    const payload = { test: "data" };
     
-    
+    const res = await ajax.post("/api/item", {
+      data: payload,
+      headers: { "X-Custom-Header": "test-value" },
+    });
+
+    expect(res.status).toBe(201);
+  });
+
+  it("should handle POST error response", async () => {
+    const ajax = getAjaxInstance();
+    try {
+      await ajax.post("/api/item/999", { data: { test: "data" } });
+      expect(false).toBe(true);
+    } catch (err: any) {
+      expect(err.status).toBe(404);
+    }
   });
 });

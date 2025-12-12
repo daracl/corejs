@@ -2,6 +2,9 @@
 import { Ajax } from "@/ajax/Ajax";
 import app from "../../api/server";
 
+// Node 18+ built-in fetch 사용 (undici 기반)
+// 추가 polyfill 불필요
+
 let server: any;
 let ajax: Ajax;
 
@@ -55,10 +58,19 @@ if (typeof (global as any).clearImmediate === "undefined") {
   };
 }
 
+// 싱글턴: setupTestEnvironment가 한 번만 등록되도록 관리
+let isSetupDone = false;
+
 /**
  * 테스트 공통 beforeAll / afterAll
+ * 여러 번 호출되어도 한 번만 실행 (싱글턴 패턴)
  */
 export function setupTestEnvironment() {
+  if (isSetupDone) {
+    return; // 이미 등록됨, 중복 등록 방지
+  }
+  isSetupDone = true;
+
   beforeAll(async () => {
     await startServer();
     createAjaxInstance();
