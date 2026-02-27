@@ -235,3 +235,25 @@ function pad(orginStr: any, size: number, ch: string, type: "l" | "r" = "l", cla
 
   return type === "l" ? padStr + str : str + padStr;
 }
+
+/**
+ * HTML 문자열을 일반 텍스트로 변환
+ * @param {string} html HTML 문자열
+ * @returns {string} 일반 텍스트
+ */
+export function convertHtmlToText(html: string | null | undefined): string {
+  if (!html) return '';
+
+  return html
+    .replaceAll(/<br\s*\/?>/gi, '\n')
+    .replaceAll(/<\/(p|div|li|h[1-6])>/gi, '\n')
+    .replaceAll(/<[^>]*>/g, '')
+    .replaceAll('&nbsp;', ' ')
+    .replaceAll('&amp;', '&')
+    .replaceAll('&lt;', '<')
+    .replaceAll('&gt;', '>')
+    .replaceAll('&quot;', '"')
+    .replaceAll('&#39;', "'")
+    .replaceAll(/\n{3,}/g, '\n\n')
+    .trim();
+}
