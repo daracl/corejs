@@ -22,7 +22,7 @@ export class Ajax {
     this.options = objectDeepMerge(this.createGlobalAjaxOptions(), options || {});
     this.fetchAjax = new FetchAjax(this.options);
     this.xhrAjax = new XHRAjax(this.options);
-    this.isFetchSupported =  typeof window !== "undefined" && "fetch" in window;
+    this.isFetchSupported = typeof window !== "undefined" && "fetch" in window;
   }
 
   createGlobalAjaxOptions(): GlobalAjaxOptions {
@@ -38,7 +38,7 @@ export class Ajax {
       validMethods: ["GET", "POST", "PUT", "DELETE"],
       errorAlertView: false,
       ignoreResultCheck: false,
-      fetchMode : "xhr",
+      fetchMode: "xhr",
     };
   }
 
@@ -50,8 +50,8 @@ export class Ajax {
       timeout: opts.timeout,
       responseType: opts.responseType,
       headers: opts.headers,
-      loaderContainer: "",
-      loaderOption: {},
+      loaderContainer: opts.loaderContainer,
+      loaderOption: opts.loaderOption,
       errorAlertView: opts.errorAlertView,
       ignoreResultCheck: opts.ignoreResultCheck,
     };
@@ -61,7 +61,7 @@ export class Ajax {
    * Ajax 인스턴스를 생성합니다.
    * @param {?AjaxOptions} [options]  ajax 옵션
    * @returns {Ajax} Ajax 인스턴스
-   */ 
+   */
   public static create(options?: AjaxOptions): Ajax {
     return new Ajax(options);
   }
@@ -69,38 +69,36 @@ export class Ajax {
   private _request(url: string, method?: string, options?: AjaxOptions, useFetch: boolean = true): Promise<any> {
     url = this.options.baseUrl ? this.options.baseUrl + url : url;
     const data = options?.data;
-    const opts = objectDeepMerge(this.createDefaultOptions(), options || {}, {_excludeKeys:["data"]});
+    const opts = objectDeepMerge(this.createDefaultOptions(), options || {}, { _excludeKeys: ["data"] });
     opts.data = data;
 
     const ajaxMethod = (method || opts.method || "GET").toUpperCase();
 
-    if(!this.options.validMethods?.includes(ajaxMethod)){
-      return Promise.reject(
-          {
-            type: "http",
-            status: 405,
-            readyState : 0,
-            statusText: 'Invalid Method',
-            responseText:`Invalid HTTP method: ${ajaxMethod}`,
-            xhr: null,
-            loadingInstance:null,
-          }
-        );
+    if (!this.options.validMethods?.includes(ajaxMethod)) {
+      return Promise.reject({
+        type: "http",
+        status: 405,
+        readyState: 0,
+        statusText: "Invalid Method",
+        responseText: `Invalid HTTP method: ${ajaxMethod}`,
+        xhr: null,
+        loadingInstance: null,
+      });
     }
-    
+
     opts.loaderContainer = opts.loaderContainer || (this.options.enableDefaultLoader ? this.options.loaderContainer || "body" : null);
 
-    const returnPromise =  this.isFetchSupported && this.options.fetchMode == 'fetch'
-      ? this.fetchAjax.request(url, ajaxMethod, opts)
-      : this.xhrAjax.request(url, ajaxMethod, opts);
+    const returnPromise = this.isFetchSupported && this.options.fetchMode == "fetch" ? this.fetchAjax.request(url, ajaxMethod, opts) : this.xhrAjax.request(url, ajaxMethod, opts);
 
-    return returnPromise.then((response:any)=>{
-      if(response.loadingInstance) response.loadingInstance.hide();
-      return Promise.resolve(response);
-    }).catch((error:any)=>{
-      if(error.loadingInstance) error.loadingInstance.hide();
-      return Promise.reject(error);
-    })
+    return returnPromise
+      .then((response: any) => {
+        if (response.loadingInstance) response.loadingInstance.hide();
+        return Promise.resolve(response);
+      })
+      .catch((error: any) => {
+        if (error.loadingInstance) error.loadingInstance.hide();
+        return Promise.reject(error);
+      });
   }
 
   /**
@@ -109,7 +107,7 @@ export class Ajax {
    * @param {string} url api URL
    * @param {?AjaxOptions} [options]  ajax 옵션
    * @param {boolean} [useFetch=true] Fetch API 사용 여부
-   * @returns {*} 
+   * @returns {*}
    */
   public request(options?: AjaxOptions, useFetch: boolean = true): Promise<any> {
     const url = options?.url || "";
@@ -122,7 +120,7 @@ export class Ajax {
    * @param {string} url api URL
    * @param {?AjaxOptions} [options]  ajax 옵션
    * @param {boolean} [useFetch=true] Fetch API 사용 여부
-   * @returns {*} 
+   * @returns {*}
    */
   public get(url: string, options?: AjaxOptions, useFetch: boolean = true): Promise<any> {
     return this._request(url, "GET", options, useFetch);
@@ -134,7 +132,7 @@ export class Ajax {
    * @param {string} url api URL
    * @param {?AjaxOptions} [options]  ajax 옵션
    * @param {boolean} [useFetch=true] Fetch API 사용 여부
-   * @returns {*} 
+   * @returns {*}
    */
   public post(url: string, options?: AjaxOptions, useFetch: boolean = true): Promise<any> {
     return this._request(url, "POST", options, useFetch);
@@ -146,20 +144,19 @@ export class Ajax {
    * @param {string} url api URL
    * @param {?AjaxOptions} [options]  ajax 옵션
    * @param {boolean} [useFetch=true] Fetch API 사용 여부
-   * @returns {*} 
+   * @returns {*}
    */
   public put(url: string, options?: AjaxOptions, useFetch: boolean = true): Promise<any> {
     return this._request(url, "PUT", options, useFetch);
   }
 
-  
   /**
    * DELETE 요청을 보냅니다.
    *
    * @param {string} url api URL
    * @param {?AjaxOptions} [options]  ajax 옵션
    * @param {boolean} [useFetch=true] Fetch API 사용 여부
-   * @returns {*} 
+   * @returns {*}
    */
   public delete(url: string, options?: AjaxOptions, useFetch: boolean = true): Promise<any> {
     return this._request(url, "DELETE", options, useFetch);
