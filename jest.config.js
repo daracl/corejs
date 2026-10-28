@@ -1,5 +1,24 @@
 const path = require('path');
 
+const reporters = ['default'];
+try {
+  // HTML 리포터는 부가 출력이므로 미설치 상태에서도 테스트는 실행합니다.
+  reporters.push([
+    require.resolve('jest-html-reporter'),
+    {
+      outputPath: path.resolve(__dirname, 'test-results', 'test-report.html'),
+      pageTitle: 'Daracl Core Test Report',
+      includeFailureMsg: true,
+      includeConsoleLog: true,
+      theme: 'darkTheme',
+      openReport: false,
+    },
+  ]);
+} catch (error) {
+  if (error.code !== 'MODULE_NOT_FOUND') throw error;
+  console.warn('[jest] jest-html-reporter가 없어 기본 리포터만 사용합니다.');
+}
+
 module.exports = {
   verbose: true,
   testEnvironment: "jest-environment-jsdom",
@@ -22,19 +41,5 @@ module.exports = {
   //     tsconfig: "tsconfig.json",
   //   },
   // },
-  reporters: [
-    'default',
-    [
-      'jest-html-reporter',
-      {
-        // 프로젝트 루트 기준 절대 경로로 리포트 파일 저장
-        outputPath: path.resolve(__dirname, 'test-results', 'test-report.html'),
-        pageTitle: 'Daracl Core Test Report',
-        includeFailureMsg: true,
-        includeConsoleLog: true,
-        theme: 'darkTheme',
-        openReport: false, // 테스트 후 자동으로 브라우저에서 열기 (필요시 true로 변경)
-      },
-    ],
-  ],
+  reporters,
 };

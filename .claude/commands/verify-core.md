@@ -1,6 +1,6 @@
 corejs 변경을 검증한다.
 
-1. AGENTS.md와 HARNESS.md를 읽고 git diff로 검증 범위를 확인한다.
+1. AGENTS.md와 docs/HARNESS.md를 읽고 git diff로 검증 범위를 확인한다.
 2. node scripts/harness.mjs verify를 실행한다.
 3. 단계가 실패하면 원인을 보고하고 요청 범위 안에서 수정한 뒤 관련 검증을 다시 한다.
 4. 테스트 수, 타입·SCSS·네 가지 빌드·트리셰이킹 결과와 수행하지 못한 검증을 보고한다.

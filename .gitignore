@@ -12,6 +12,10 @@ dist.zip
 .pnp.*
 dist/*
 docs/*
+!docs/PROJECT_REVIEW.md
+!docs/UTILS_MIGRATION.md
+!docs/AJAX_OPTIONS.md
+!docs/HARNESS.md
 template.zip
 
 # test result 

@@ -6,8 +6,8 @@
 
 | 파일 | 역할 |
 | --- | --- |
-| `AGENTS.md` | Codex 등 에이전트의 프로젝트 구조·코드·호환성·검증 지침 |
-| `CLAUDE.md` | AGENTS.md를 가져오는 Claude Code 진입점 |
+| [AGENTS.md](../AGENTS.md) | Codex 등 에이전트의 프로젝트 구조·코드·호환성·검증 지침 |
+| [CLAUDE.md](../CLAUDE.md) | AGENTS.md를 가져오는 Claude Code 진입점 |
 | `.claude/settings.json` | 점검 실행 허용, dist 직접 수정·publish·push·강제 초기화 제한, SCSS 훅 연결 |
 | `.claude/hooks/style-check.mjs` | style/의 SCSS를 수정하면 파일 생성 없이 Sass 컴파일 |
 | `.claude/commands/audit-core.md` | Claude Code 점검 명령 |

@@ -1,6 +1,6 @@
 # corejs 작업 지침
 
-이 저장소는 `@daracl/core` 브라우저 코어 라이브러리다. Ajax, Loading, DOM·이벤트·문자열·객체 유틸리티를 제공한다. `../ui-common-harness`의 작업 흐름을 참고하되 이 저장소의 실제 설정과 사용자 요청을 우선한다. 하네스 사용법과 적용 차이는 [HARNESS.md](HARNESS.md)에 있다.
+이 저장소는 `@daracl/core` 브라우저 코어 라이브러리다. Ajax, Loading, DOM·이벤트·문자열·객체 유틸리티를 제공한다. `../ui-common-harness`의 작업 흐름을 참고하되 이 저장소의 실제 설정과 사용자 요청을 우선한다. 하네스 사용법과 적용 차이는 [HARNESS.md](docs/HARNESS.md)에 있다.
 
 ## 작업 범위
 

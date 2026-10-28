@@ -2,7 +2,7 @@
 
 @AGENTS.md
 
-작업 지침은 AGENTS.md를 공유하며, 명령과 공통 하네스 대비 차이는 HARNESS.md를 따른다.
+작업 지침은 AGENTS.md를 공유하며, 명령과 공통 하네스 대비 차이는 [HARNESS.md](docs/HARNESS.md)를 따른다.
 
 - `/audit-core`: 설정·도구·소스 충돌·SCSS 점검
 - `/verify-core`: 타입·테스트·SCSS·ES/CJS·UMD·선언·ESM 트리셰이킹 검증
