@@ -1,4 +1,4 @@
-import express, { Request, Response, Express } from "express";
+import express, { Request, Response, Express, ErrorRequestHandler } from "express";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -22,24 +22,38 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024, files: 10, fields: 50, fieldSize: 64 * 1024, parts: 60 },
+});
 
-// 모든 도메인 허용
-app.use(cors());
+// 개발 UI와 테스트 페이지에서 사용하는 출처만 허용합니다.
+const allowedOrigins = new Set([
+  "http://localhost:4171", "http://127.0.0.1:4171",
+  "http://localhost:5173", "http://127.0.0.1:5173",
+  "http://localhost:3000", "http://127.0.0.1:3000",
+  "http://localhost", "http://127.0.0.1",
+]);
+app.use((req, res, next) => {
+  if (req.headers.origin && !allowedOrigins.has(req.headers.origin)) {
+    res.status(403).json({ error: "Origin not allowed" });
+    return;
+  }
+  next();
+});
+app.use(cors({ origin: [...allowedOrigins] }));
 
 // Middleware
 app.use(express.json());
 app.use("/uploads", express.static(uploadDir));
 
 /**
- * 요청 헤더를 그대로 응답 헤더로 설정
+ * 테스트용 사용자 정의 헤더만 응답에 반영합니다.
  */
 function mirrorHeaders(req: Request, res: Response) {
   
- const unsafeHeaders = ["content-length", "transfer-encoding", "connection"];
-
   for (const [key, value] of Object.entries(req.headers)) {
-    if (!unsafeHeaders.includes(key.toLowerCase())) {
+    if (key.toLowerCase().startsWith("x-")) {
       res.setHeader(key, Array.isArray(value) ? value.join(", ") : value as string);
     }
   }
@@ -231,5 +245,18 @@ app.use((req: Request, res: Response) => {
     method: req.method,
   });
 });
+
+// 업로드 제한과 잘못된 JSON 오류를 HTML 스택 대신 JSON으로 반환합니다.
+const handleError: ErrorRequestHandler = (error, req, res, next) => {
+  if (res.headersSent) return next(error);
+  if (error instanceof multer.MulterError) {
+    const status = error.code === "LIMIT_UNEXPECTED_FILE" ? 400 : 413;
+    res.status(status).json({ error: error.code, message: "Upload rejected" });
+    return;
+  }
+  const status = error.status === 400 || error.status === 413 ? error.status : 500;
+  res.status(status).json({ error: status === 500 ? "Internal Server Error" : "Invalid request" });
+};
+app.use(handleError);
 
 export default app;

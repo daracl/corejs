@@ -14,10 +14,13 @@
 | `.claude/commands/verify-core.md` | Claude Code 검증 명령 |
 | `scripts/harness.mjs` | 에이전트 없이도 실행하는 검증 CLI |
 | `scripts/harness.test.mjs` | CLI 인자·경로·Node 재사용·훅 성공/실패 검증 |
+| `scripts/build-files.mjs`, `scripts/build-files.test.mjs` | 배포 파일 복사·중간 출력 정리와 회귀 검증 |
+| `scripts/build.mjs` | Vite API를 재사용하고 타입 선언을 병행하는 전체 배포 빌드 |
+| `scripts/package-smoke.mjs` | 실제 npm pack과 별도 소비자 ESM/CJS import 검증 |
 
 ## 실행
 
-프로젝트 루트에서 실행한다. 추가 의존성은 설치하지 않으며 package.json의 기존 scripts는 변경하지 않았다.
+프로젝트 루트에서 실행한다. 하네스는 의존성을 자동 설치하지 않는다. 설치는 npm ci로 수행하며, Node/npm 기준과 보안 개선 결과는 [BUILD_SECURITY_REVIEW.md](BUILD_SECURITY_REVIEW.md)에 정리했다.
 
 ```powershell
 node scripts/harness.mjs audit
@@ -29,9 +32,15 @@ node scripts/harness.mjs test test/ajax/options.test.ts
 node scripts/harness.mjs build
 node scripts/harness.mjs verify
 node --test scripts/harness.test.mjs
+npm run test:scripts
+npm run test:package
 ```
 
 `verify`는 점검 → 타입 검사 → 전체 Jest → 네 가지 Vite 빌드 → 선언 생성 → 최소 소비자 ESM 번들 검증 순서로 진행하며 실패하면 중단한다. 오류는 종료 코드 1, 경고는 보고하고 계속한다. SCSS 훅은 편집과 무관한 파일·잘못된 JSON 입력에서는 종료 코드 0, 컴파일 오류에서는 2를 반환한다.
+
+`npm run verify`로 같은 검증을 실행할 수 있다. `test:package`는 별도 검증으로, prepack을 실행해 dist를 다시 생성하고 test-results에 패키지와 소비자 프로젝트를 만든다. publish는 실행하지 않는다.
+
+`npm run build`는 전체 배포 파일을 생성하는 최적화된 실행기다. 상세 구조와 전후 측정 결과는 [BUILD_PERFORMANCE.md](BUILD_PERFORMANCE.md)에 정리했다.
 
 ## 공통 기준과 corejs의 차이
 

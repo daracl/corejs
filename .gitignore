@@ -2,8 +2,7 @@
 .DS_Store
 /node_modules
 
-# ignore code scanning from package-lock
-package-lock.json
+# npm lockfile은 재현 가능한 설치를 위해 추적합니다.
 
 dist.zip
 .yarn/*
@@ -16,6 +15,8 @@ docs/*
 !docs/UTILS_MIGRATION.md
 !docs/AJAX_OPTIONS.md
 !docs/HARNESS.md
+!docs/BUILD_SECURITY_REVIEW.md
+!docs/BUILD_PERFORMANCE.md
 template.zip
 
 # test result 

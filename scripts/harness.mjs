@@ -159,7 +159,7 @@ function build() {
   const directory = artifactDirectory();
   console.log(`빌드 검증 산출물: ${directory}`);
   for (const mode of ['production', 'development']) {
-    for (const [config, format] of [['vite.config.js', 'es-cjs'], ['vite.config.umd.js', 'umd']]) {
+    for (const [config, format] of [['vite.config.mjs', 'es-cjs'], ['vite.config.umd.mjs', 'umd']]) {
       run('vite/bin/vite.js', ['build', '--config', config, '--mode', mode, '--outDir', join(directory, `${format}-${mode}`)]);
     }
   }

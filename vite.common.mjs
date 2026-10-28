@@ -1,8 +1,11 @@
 import path from 'path';
-import banner from 'vite-plugin-banner';
-import packageJson from './package.json';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
-const topBanner = `/*!
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const packageJson = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
+
+export const topBanner = `/*!
 * ${packageJson.name} v${packageJson.version}
 * Copyright 2023-${new Date().getUTCFullYear()} darainfo;
 * Licensed ${packageJson.license}
@@ -32,13 +35,17 @@ export const commonConfig = {
     extensions: ['.js', '.jsx', '.ts', '.tsx'],
   },
 
-  plugins: [banner(topBanner)],
+  css: {
+    preprocessorOptions: { scss: { api: 'modern' } },
+  },
+
+  preview: { host: '127.0.0.1' },
 
   define: {
     APP_VERSION: JSON.stringify(packageJson.version),
   },
   server: {
-    host: '0.0.0.0',
+    host: '127.0.0.1',
     port: 4171,
     open: true,
     watch: {

@@ -1,6 +1,9 @@
 import { defineConfig } from 'vite';
 import path from 'path';
-import { commonConfig, MODULE_NAME, createAssetFileNames } from './vite.common.js';
+import { fileURLToPath } from 'node:url';
+import { commonConfig, MODULE_NAME, createAssetFileNames, topBanner } from './vite.common.mjs';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig(({ mode }) => {
   const isProd = mode === 'production';
@@ -9,9 +12,11 @@ export default defineConfig(({ mode }) => {
     ...commonConfig,
 
     build: {
+      target: ['chrome109', 'edge109', 'firefox109', 'safari16.3'],
       outDir: isProd ? 'dist' : 'dist/unmin',
       emptyOutDir: false, // ES/CJS 빌드를 덮어쓰지 않기 위해 false
       sourcemap: true,
+      reportCompressedSize: false,
       minify: isProd ? 'esbuild' : false,
 
       lib: {
@@ -27,6 +32,7 @@ export default defineConfig(({ mode }) => {
       },
       rollupOptions: {
         output: {
+          banner: topBanner,
           assetFileNames: createAssetFileNames(isProd)
         },
       },

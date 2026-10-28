@@ -2,7 +2,7 @@ import app from "./server";
 
 const appServer = app;
 const PORT = 3000;
-const server = appServer.listen(PORT);
+const server = appServer.listen(PORT, "127.0.0.1");
 
 const gracefulShutdown = () => {
   console.log("Server is closing...");
