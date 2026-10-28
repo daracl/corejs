@@ -24,3 +24,5 @@ test-results/*
 /test-results
 
 bundle-report.html
+!docs/CORE_GRID_INTEGRATION.md
+!docs/BUILD_REVIEW.md

@@ -31,6 +31,9 @@ for (const start of packed.stdout.matchAll(/(?:^|\n)(?=[\[{])/g)) {
 }
 if (!manifest) throw new Error(`npm pack JSON을 찾을 수 없습니다: ${directory}`);
 const files = new Set(manifest.files.map(file => file.path));
+for (const file of ['dist/utils.js', 'dist/utils.cjs', 'dist/utils/index.d.ts']) {
+  assert.ok(files.has(file), `공통 유틸 진입점 누락: ${file}`);
+}
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 for (const file of [pkg.main, pkg.module, pkg.types, 'dist/daracl.core.umd.js', 'dist/daracl.core.min.umd.js', 'dist/daracl.core.css', 'dist/daracl.core.min.css', 'dist/types/web/AjaxOptions.d.ts']) {
   assert.ok(files.has(file.replace(/^\.\//, '')), `패키지에 필요한 파일 누락: ${file}`);
@@ -44,5 +47,7 @@ run([npm, 'install', '--ignore-scripts', '--no-audit', '--no-fund', '--cache', j
 for (const mode of ['module', 'commonjs']) {
   const load = mode === 'module' ? "import * as core from '@daracl/core';" : "const core = require('@daracl/core');";
   run(['--input-type=' + mode, '-e', `${load} const assert = ${mode === 'module' ? '(await import("node:assert/strict")).default' : 'require("node:assert/strict")'}; assert.equal(core.isString('ok'), true); assert.equal(core.isString(1), false); assert.equal(core.VERSION, ${JSON.stringify(pkg.version)}); assert.equal(typeof globalThis.Daracl, 'undefined');`], consumer);
+  const utilities = mode === 'module' ? "import * as utils from '@daracl/core/utils';" : "const utils = require('@daracl/core/utils');";
+  run(['--input-type=' + mode, '-e', `${utilities} if (!utils.isString('ok') || 'Ajax' in utils || 'Loading' in utils) throw new Error('utils entry contract');`], consumer);
 }
 console.log(`패키징·별도 소비자 ESM/CJS 검증 통과: ${files.size}개 파일, ${directory}`);

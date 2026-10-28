@@ -110,8 +110,14 @@ describe("추출한 DOM·브라우저 유틸리티", () => {
     Object.defineProperty(URL, "createObjectURL", { configurable: true, value: jest.fn(() => "blob:test") });
     const revoke = jest.fn();
     Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: revoke });
-    jest.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => { throw new Error("click"); });
-    expect(() => downloadText("content", "file.txt")).toThrow("click");
+    const downloads: string[] = [];
+    jest.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
+      downloads.push(this.download);
+      throw new Error("click");
+    });
+    expect(() => downloadText("file.txt", "content")).toThrow("click");
+    expect(downloads).toEqual(["file.txt"]);
+    expect(URL.createObjectURL).toHaveBeenCalledWith(expect.objectContaining({ size: 7, type: "application/json" }));
     expect(document.querySelector("a")).toBeNull();
     jest.runAllTimers();
     expect(revoke).toHaveBeenCalledWith("blob:test");

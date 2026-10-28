@@ -1,8 +1,8 @@
 /**
- * 문자열 여부 체크.
+ * 원시 문자열 여부를 확인합니다. String 객체는 포함하지 않습니다.
  * @param {*} value
  * @returns {boolean}
  */
 export function isString(value: any): value is string {
-  return typeof value === "string" || value instanceof String;
+  return typeof value === "string";
 }

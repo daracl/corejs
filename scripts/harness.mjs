@@ -155,15 +155,11 @@ function test(files) {
   run('jest/bin/jest', args);
 }
 
-function build() {
+async function build() {
   const directory = artifactDirectory();
   console.log(`빌드 검증 산출물: ${directory}`);
-  for (const mode of ['production', 'development']) {
-    for (const [config, format] of [['vite.config.mjs', 'es-cjs'], ['vite.config.umd.mjs', 'umd']]) {
-      run('vite/bin/vite.js', ['build', '--config', config, '--mode', mode, '--outDir', join(directory, `${format}-${mode}`)]);
-    }
-  }
-  run('typescript/bin/tsc', ['--emitDeclarationOnly', '--declarationDir', join(directory, 'types'), '--outDir', join(directory, 'types')]);
+  const { buildOutputs } = await import('./build.mjs');
+  await buildOutputs(directory);
   return directory;
 }
 
@@ -200,12 +196,12 @@ async function main() {
     case 'typecheck': run('typescript/bin/tsc', ['--noEmit', '--emitDeclarationOnly', 'false']); break;
     case 'scss': console.log(compileStyles()); break;
     case 'test': test(args); break;
-    case 'build': await treeShake(build()); break;
+    case 'build': await treeShake(await build()); break;
     case 'verify':
       audit(false);
       run('typescript/bin/tsc', ['--noEmit', '--emitDeclarationOnly', 'false']);
       test([]);
-      await treeShake(build());
+      await treeShake(await build());
       console.log('전체 검증 통과 (배포 패키징·실제 브라우저 수동 검증 제외)');
       break;
     default: throw new Error(`알 수 없는 명령: ${command}`);

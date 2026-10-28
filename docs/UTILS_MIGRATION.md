@@ -62,7 +62,7 @@
 - `hasClass`는 원본 grid처럼 토큰 중 하나라도 포함하면 true다. `createHTMLElement`는 grid의 일반 속성 문자열화·style/dataset 처리를 기준으로 통합했다. report-studio의 createEl(false 속성 생략)과 완전히 같지는 않다.
 - `toDataAttribute`의 drift 전용 예약어는 두 번째 인자로 전달한다: `toDataAttribute(key, ['drift-id'])`.
 - `writeClipboard`는 Promise<boolean>을 반환하고 권한 실패 시 textarea fallback을 사용한다. 취소·제거 경로를 위해 debounce에는 cancel을 추가했다.
-- `downloadText`의 인자 순서는 components 기준 **text, fileName, type**이다. report-studio의 filename, text와 반대이므로 호출부 교체 시 주의한다. 다운로드 실패 시에도 임시 링크·object URL을 정리한다.
+- `downloadText`의 인자 순서는 **fileName, text, type**이다. 기존 text, fileName 순서로 호출하던 코드는 변경해야 한다. 다운로드 실패 시에도 임시 링크·object URL을 정리한다.
 - `arrayEquals`는 순서 무시 시에도 중복 개수를 비교하며 정렬 대신 Map을 쓴다. isSequential·집계도 대규모 배열에서 spread 인자 한계 없이 처리한다.
 - 페이징은 원본 반환 필드와 페이지 창 계산을 유지하되 음수·비유한 페이지/크기를 정규화한다. moveItem은 유효하지 않은 인덱스를 무시한다.
 - innerLayerPosition은 Grid 전용 위치 보정 대신 일반 컨테이너·viewport 좌표와 가용 높이로 계산한다. 스크롤 측정은 화면 밖 좌표를 viewport로 제한한다.

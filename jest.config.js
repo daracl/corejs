@@ -11,7 +11,6 @@ try {
       includeFailureMsg: true,
       includeConsoleLog: true,
       theme: 'darkTheme',
-      openReport: false,
     },
   ]);
 } catch (error) {
@@ -20,6 +19,8 @@ try {
 }
 
 module.exports = {
+  // 검증 산출물이나 외부 프로젝트 복사본을 테스트로 수집하지 않습니다.
+  roots: ["<rootDir>/test"],
   verbose: true,
   testEnvironment: "jest-environment-jsdom",
   preset: "ts-jest",

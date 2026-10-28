@@ -23,8 +23,8 @@ export function downloadUrl(url: string, fileName: string): void {
   try { link.click(); } finally { link.remove(); }
 }
 
-/** 텍스트를 파일로 다운로드하고 임시 object URL을 해제합니다. 인자 순서는 text, fileName입니다. */
-export function downloadText(text: string, fileName: string, type = "application/json"): void {
+/** 텍스트를 파일로 다운로드하고 임시 object URL을 해제합니다. 인자 순서는 fileName, text입니다. */
+export function downloadText(fileName: string, text: string, type = "application/json"): void {
   const url = URL.createObjectURL(new Blob([text], { type }));
   try { downloadUrl(url, fileName); } finally { setTimeout(() => URL.revokeObjectURL(url), 0); }
 }

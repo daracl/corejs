@@ -19,7 +19,7 @@ export const MODULE_NAME = moduleName;
 /** 공통 asset 설정 */
 export const createAssetFileNames = (isProd) => {
   return (assetInfo) => {
-    if (assetInfo.name.endsWith('.css')) {
+    if (assetInfo.names.some(name => name.endsWith('.css'))) {
       return isProd ? `${MODULE_NAME}.min.[ext]` : `${MODULE_NAME}.[ext]`;
     }
     return 'assets/[name].[ext]';

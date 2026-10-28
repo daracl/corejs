@@ -1,6 +1,6 @@
 {
   "name": "@daracl/core",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "sideEffects": [
     "src/index.umd.ts",
     "./style/*.scss",
@@ -47,6 +47,13 @@
     "./umd": {
       "import": "./dist/daracl.core.umd.js"
     },
+    "./utils": {
+      "daracl-source": "./src/utils/index.ts",
+      "types": "./dist/utils/index.d.ts",
+      "import": "./dist/utils.js",
+      "require": "./dist/utils.cjs"
+    },
+    "./package.json": "./package.json",
     "./dist/": "./dist/",
     "./style/": "./style/"
   },
@@ -54,6 +61,13 @@
     "dist",
     "style"
   ],
+  "typesVersions": {
+    "*": {
+      "utils": [
+        "dist/utils/index.d.ts"
+      ]
+    }
+  },
   "scripts": {
     "prepack": "npm run build",
     "prepublishOnly": "npm run test:all",
@@ -64,7 +78,7 @@
     "build:tsc": "tsc --emitDeclarationOnly",
     "dev": "concurrently \"npm run dev:vite\" \"npm run dev:server\"",
     "dev:vite": "vite",
-    "dev:server": "npx ts-node --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" api/index.ts",
+    "dev:server": "ts-node --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" api/index.ts",
     "preview": "vite preview",
     "docs:gen": "typedoc --tsconfig tsconfig.doc.json",
     "dts:gen": "tsc src/index.ts --declaration --emitDeclarationOnly --outDir dist",
@@ -78,7 +92,9 @@
     "copy-dts": "node scripts/build-files.mjs dts",
     "verify": "node scripts/harness.mjs verify",
     "test:scripts": "node --test scripts/*.test.mjs",
-    "test:package": "node scripts/package-smoke.mjs"
+    "test:package": "node scripts/package-smoke.mjs",
+    "audit:security": "npm audit --omit=dev",
+    "audit:security:all": "npm audit"
   },
   "dependencies": {
     "tslib": "^2.8.1"

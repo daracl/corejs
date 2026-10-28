@@ -5,8 +5,8 @@ describe("isString", () => {
     expect(true).toBe(isString("9"));
   });
 
-  it("new String check", () => {
-    expect(true).toBe(isString(new String("1")));
+  it("String 객체는 원시 문자열이 아니므로 false를 반환한다", () => {
+    expect(isString(new String("1"))).toBe(false);
   });
 
   it("'' check", () => {
