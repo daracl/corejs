@@ -27,6 +27,11 @@ describe("추출한 DOM·브라우저 유틸리티", () => {
     expect(normalizeCssLength("10rem")).toBe("10rem");
     expect(createClassNamer("test")("a b", " c")).toBe("test-a test-b test-c");
     expect(templateToElement(" <span>text</span> ")!.tagName).toBe("SPAN");
+    const button: HTMLButtonElement = createHTMLElement("button", "action", { type: "button" }, "<b>저장</b>");
+    expect(button.textContent).toBe("<b>저장</b>");
+    expect(button.querySelector("b")).toBeNull();
+    expect(button.type).toBe("button");
+    expect(createHTMLElement("span", undefined, undefined, "").textContent).toBe("");
   });
 
   it("iframe의 HTML과 SVG 요소 타입을 구별한다", () => {

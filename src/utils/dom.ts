@@ -17,10 +17,10 @@ export function isVisible(element: HTMLElement): boolean {
   return !!(element.offsetHeight || element.offsetWidth) && getComputedStyle(element).visibility !== "hidden";
 }
 
-/** HTML 요소를 만들고 class·style·dataset·일반 속성을 적용합니다. HTML 문자열을 실행하지 않습니다. */
-export function createHTMLElement<K extends keyof HTMLElementTagNameMap>(tagName: K, className?: string, attrs?: ElementAttributes): HTMLElementTagNameMap[K];
-export function createHTMLElement(tagName: string, className?: string, attrs?: ElementAttributes): HTMLElement;
-export function createHTMLElement(tagName: string, className?: string, attrs: ElementAttributes = {}): HTMLElement {
+/** HTML 요소를 만들고 class·style·dataset·일반 속성과 textContent를 적용합니다. HTML 문자열을 실행하지 않습니다. */
+export function createHTMLElement<K extends keyof HTMLElementTagNameMap>(tagName: K, className?: string, attrs?: ElementAttributes, text?: string): HTMLElementTagNameMap[K];
+export function createHTMLElement(tagName: string, className?: string, attrs?: ElementAttributes, text?: string): HTMLElement;
+export function createHTMLElement(tagName: string, className?: string, attrs: ElementAttributes = {}, text?: string): HTMLElement {
   const element = document.createElement(tagName);
   if (className) addClass(element, className);
   for (const [key, value] of Object.entries(attrs)) {
@@ -32,6 +32,7 @@ export function createHTMLElement(tagName: string, className?: string, attrs: El
       for (const [name, item] of Object.entries(value)) element.setAttribute(`data-${camelToKebab(name)}`, String(item));
     } else element.setAttribute(key, value !== null && typeof value === "object" ? JSON.stringify(value) : String(value));
   }
+  if (text !== undefined) element.textContent = text;
   return element;
 }
 
