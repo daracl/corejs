@@ -1,93 +1,84 @@
 import { isArray } from "./isArray";
-import { isDate } from "./isDate";
-import { isEmpty } from "./isEmpty";
-import { isFunction } from "./isFunction";
-import { isObject } from "./isObject";
 import { isPlainObject } from "./isPlainObject";
-import { isUndefined } from "./isUndefined";
 
-function cloneDeep(dst: any, src: any, excludeKeys:Set<string>): any {
-  if (isArray(src)) {
-    return cloneArrayDeep(dst, src, excludeKeys);
-  }
+// null prototype 객체도 병합하되 클래스·DOM·함수의 내부 상태는 순회하지 않습니다.
+const isMergeObject = (value: any): boolean => isPlainObject(value) ||
+  (value !== null && typeof value === "object" && Object.getPrototypeOf(value) === null);
+const hasOwn = (value: object, key: string): boolean => Object.prototype.hasOwnProperty.call(value, key);
 
-  if (isDate(src)) {
-     return new Date(src.getTime());
-  }
-
-  if (isObject(src)) {
-    return cloneObjectDeep(dst, src, excludeKeys);
-  }
-
-  return src;
+function setOwn(target: object, key: string, value: any): void {
+  Object.defineProperty(target, key, { value, enumerable: true, writable: true, configurable: true });
 }
 
-/*eslint no-param-reassign: "error"*/
-function cloneObjectDeep(dst: any, src: any, excludeKeys:Set<string>): object {
-  if (isFunction(src)) {
-    return src;
+/** 소스별 참조 표와 작업 목록으로 순환 참조와 깊은 중첩을 처리합니다. */
+function mergeSource(target: any, source: any, excludeKeys: Set<string>): void {
+  const copies = new WeakMap<object, any>();
+  const tasks: (() => void)[] = [];
+
+  function copy(value: any, current?: any): any {
+    if (value === null || typeof value !== "object") return value;
+    if (copies.has(value)) return copies.get(value);
+    let result: any;
+    if (isArray(value)) {
+      result = isArray(current) ? current : [];
+      tasks.push(() => mergeArray(result, value));
+    } else if (isMergeObject(value)) {
+      result = isMergeObject(current) ? current : Object.create(Object.getPrototypeOf(value));
+      tasks.push(() => mergeObject(result, value));
+    } else if (value instanceof Date) {
+      result = new Date(value.getTime());
+    } else if (value instanceof RegExp) {
+      result = new RegExp(value.source, value.flags);
+      result.lastIndex = value.lastIndex;
+    } else if (value instanceof Map) {
+      result = new Map();
+      tasks.push(() => value.forEach((item, key) => result.set(copy(key), copy(item))));
+    } else if (value instanceof Set) {
+      result = new Set();
+      tasks.push(() => value.forEach(item => result.add(copy(item))));
+    } else {
+      // DOM·AbortSignal·사용자 클래스 등은 내부 구조를 추측하지 않고 참조를 유지합니다.
+      return value;
+    }
+    copies.set(value, result);
+    return result;
   }
 
-  for (const key of Object.keys(src)) {
-    if (excludeKeys.has(key) || key === "__proto__" || key === "constructor" || key === "prototype") continue;
-
-    const val = (src as any)[key];
-
-    if (isUndefined(val)) {
-      continue;
-    }
-
-    if (val === null) {
-      dst[key] = val;
-    } else if (isFunction(val)) {
-      dst[key] = val;
-    } else if (isEmpty(dst[key])) {
-      dst[key] = cloneDeep(isArray(val) ? [] : {}, val, excludeKeys);
-    } else if (!isObject(val)) {
-      dst[key] = val;
-    } else {
-      if (!isObject(dst[key])) {
-        dst[key] = {};
-      }
-      dst[key] = cloneDeep(dst[key], val, excludeKeys);
+  function mergeObject(dst: any, src: any): void {
+    for (const key of Object.keys(src)) {
+      if (excludeKeys.has(key) || key === "__proto__" || key === "constructor" || key === "prototype") continue;
+      const value = src[key];
+      if (value === undefined) continue;
+      setOwn(dst, key, copy(value, hasOwn(dst, key) ? dst[key] : undefined));
     }
   }
-  return dst;
-}
 
-function cloneArrayDeep(dst: any, src: any[], excludeKeys:Set<string>) {
-  const isObj = isPlainObject(dst);
-  const isArr = isArray(dst);
-  const seen = new Set(isArr ? dst : []);
-
-  for (let i = 0; i < src.length; i += 1) {
-    const val = src[i];
-    let newVal;
-
-    if (val == null) {
-      newVal = val;
-    } else {
-      newVal = cloneDeep(isArray(val) ? [] : {}, val, excludeKeys);
-    }
-
-    if (isObj) {
-      (dst as any)[i] = newVal;
-    } else {
-      if (isArr && (Number.isNaN(newVal) || !seen.has(newVal))) {
-        seen.add(newVal);
-        dst.push(newVal);
+  function mergeArray(dst: any[], src: any[]): void {
+    const seen = new Set(dst);
+    for (const value of src) {
+      const item = copy(value);
+      // 객체 요소는 내용 비교로 제거하지 않으며 NaN 중복도 기존처럼 보존합니다.
+      if ((value !== null && typeof value === "object") || Number.isNaN(item) || !seen.has(item)) {
+        seen.add(item);
+        dst.push(item);
       }
     }
   }
-  return dst;
+
+  copies.set(source, target);
+  if (isArray(source) && isArray(target)) tasks.push(() => mergeArray(target, source));
+  else tasks.push(() => mergeObject(target, source));
+  while (tasks.length) tasks.pop()!();
 }
 
 /**
  * 깊은 병합 (objectDeepMerge)
  *
  * - 여러 객체를 순서대로 병합하여 새 객체를 반환합니다.
- * - 값이 객체이면 재귀적으로 병합하고, 배열은 내부 요소를 복사하여 병합합니다.
- * - 함수는 그대로 복사합니다.
+ * - 일반 객체끼리 병합하고, 배열끼리는 원시 값 중복을 제거하여 합칩니다(NaN 제외).
+ * - 배열과 객체 등 타입이 다르면 뒤의 값으로 교체합니다.
+ * - Date·RegExp·Map·Set은 복사하고 함수·DOM·기타 클래스 인스턴스는 참조를 유지합니다.
+ * - 소스 내부의 순환 참조와 공유 참조를 유지합니다.
  * - undefined 값은 무시됩니다.
  * - 마지막 인자로 {_excludeKeys: string[]} 형태의 옵션 객체를 전달하면
  *   해당 키들은 병합에서 제외됩니다 (첫 번째 소스에는 제외 적용되지 않음).
@@ -127,25 +118,17 @@ export function objectDeepMerge(...values: any[]): any {
   let excludeKeys = new Set<string>();
   let sources = values; 
   const last = values[values.length - 1];
-  if (last && isObject(last) && isArray((last as any)._excludeKeys)) {
+  if (isMergeObject(last) && hasOwn(last, "_excludeKeys") && isArray(last._excludeKeys)) {
     excludeKeys = new Set<string>(last._excludeKeys.map(String));
     sources = values.slice(0, -1);
   }
   
   let result = {};
 
-  let firstflag = true; 
-  for (let value of sources) {
-    if(isEmpty(value)){
-      firstflag = false; 
-      continue;
-    } 
-
-    if(firstflag){
-      cloneDeep(result, value, new Set<string>());
-      firstflag = false; 
-    }else{
-      cloneDeep(result, value, excludeKeys);
+  for (let index = 0; index < sources.length; index++) {
+    const value = sources[index];
+    if (isArray(value) || isMergeObject(value)) {
+      mergeSource(result, value, index === 0 ? new Set<string>() : excludeKeys);
     }
   }
 
@@ -153,6 +136,7 @@ export function objectDeepMerge(...values: any[]): any {
 }
 
 
+/** 배열들을 깊게 복사하여 합칩니다. 원시 값은 중복 제거하고 NaN·객체 요소는 보존합니다. */
 export function arrayDeepMerge(...values: any[]): any {
   if (values.length < 1) {
     return values;
@@ -162,8 +146,8 @@ export function arrayDeepMerge(...values: any[]): any {
   let excludeKeys = new Set<string>();
   
   for (let value of values) {
-    if(isEmpty(value)) continue;
-    cloneArrayDeep(source, value, excludeKeys);
+    if (!isArray(value)) continue;
+    mergeSource(source, value, excludeKeys);
   }
 
   return source;

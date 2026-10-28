@@ -1,6 +1,6 @@
 {
   "name": "@daracl/core",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "sideEffects": [
     "src/index.umd.ts",
     "./style/*.scss",
