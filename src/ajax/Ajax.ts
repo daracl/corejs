@@ -2,6 +2,15 @@ import { AjaxOptions, GlobalAjaxOptions } from "@t/web/AjaxOptions";
 import { FetchAjax } from "./FetchAjax";
 import { XHRAjax } from "./XHRAjax";
 import { objectDeepMerge } from "@/utils";
+import type { Loading } from "@/Loading";
+
+/** 진행 중인 요청의 조회 정보입니다. 본문과 인증 헤더는 보관하지 않습니다. */
+export interface PendingAjaxRequest {
+  readonly id: number;
+  readonly url: string;
+  readonly method: string;
+  readonly startedAt: number;
+}
 
 /**
  * Ajax 클래스
@@ -17,9 +26,22 @@ export class Ajax {
   private isFetchSupported: boolean;
 
   private options: GlobalAjaxOptions;
+  private readonly pendingRequestMap = new Map<number, PendingAjaxRequest>();
+  private nextRequestId = 0;
+
+  /**
+   * 진행 중인 요청의 스냅샷을 반환합니다. 동일 URL 요청도 별도 ID로 구분합니다.
+   * @returns 진행 중인 요청 Map의 복사본
+   */
+  public get pendingRequests(): ReadonlyMap<number, PendingAjaxRequest> {
+    return new Map(this.pendingRequestMap);
+  }
 
   constructor(options?: GlobalAjaxOptions) {
-    this.options = objectDeepMerge(this.createGlobalAjaxOptions(), options || {});
+    this.options = objectDeepMerge(this.createGlobalAjaxOptions(), options || {}, { _excludeKeys: ["signal", "params", "loaderContainer"] });
+    this.options.signal = options?.signal;
+    this.options.params = options?.params;
+    this.options.loaderContainer = options?.loaderContainer;
     this.fetchAjax = new FetchAjax(this.options);
     this.xhrAjax = new XHRAjax(this.options);
     this.isFetchSupported = typeof window !== "undefined" && "fetch" in window;
@@ -46,6 +68,14 @@ export class Ajax {
     const opts = this.options;
     return {
       url: "",
+      signal: opts.signal,
+      credentials: opts.credentials,
+      params: opts.params,
+      enableLoader: opts.enableLoader,
+      fetchMode: opts.fetchMode,
+      validateStatus: opts.validateStatus,
+      beforeRequest: opts.beforeRequest,
+      beforeResponse: opts.beforeResponse,
       method: opts.method,
       timeout: opts.timeout,
       responseType: opts.responseType,
@@ -62,15 +92,18 @@ export class Ajax {
    * @param {?AjaxOptions} [options]  ajax 옵션
    * @returns {Ajax} Ajax 인스턴스
    */
-  public static create(options?: AjaxOptions): Ajax {
+  public static create(options?: GlobalAjaxOptions): Ajax {
     return new Ajax(options);
   }
 
-  private _request(url: string, method?: string, options?: AjaxOptions, useFetch: boolean = true): Promise<any> {
+  private async _request(url: string, method?: string, options?: AjaxOptions, useFetch: boolean = true): Promise<any> {
     url = this.options.baseUrl ? this.options.baseUrl + url : url;
     const data = options?.data;
-    const opts = objectDeepMerge(this.createDefaultOptions(), options || {}, { _excludeKeys: ["data"] });
+    const opts = objectDeepMerge({ ...this.createDefaultOptions(), signal: undefined, params: undefined, loaderContainer: undefined }, options || {}, { _excludeKeys: ["data", "signal", "params", "loaderContainer"] });
     opts.data = data;
+    opts.signal = options?.signal ?? this.options.signal;
+    opts.params = { ...this.options.params, ...options?.params };
+    opts.loaderContainer = options?.loaderContainer ?? this.options.loaderContainer;
 
     const ajaxMethod = (method || opts.method || "GET").toUpperCase();
 
@@ -86,19 +119,31 @@ export class Ajax {
       });
     }
 
-    opts.loaderContainer = opts.loaderContainer || (this.options.enableDefaultLoader ? this.options.loaderContainer || "body" : null);
+    opts.loaderContainer = opts.enableLoader === false ? null : opts.loaderContainer ||
+      (opts.enableLoader === true || this.options.enableDefaultLoader ? "body" : null);
 
-    const returnPromise = this.isFetchSupported && this.options.fetchMode == "fetch" ? this.fetchAjax.request(url, ajaxMethod, opts) : this.xhrAjax.request(url, ajaxMethod, opts);
+    const id = ++this.nextRequestId;
+    this.pendingRequestMap.set(id, Object.freeze({ id, url, method: ajaxMethod, startedAt: Date.now() }));
+    let loadingInstance: Loading | null = null;
+    const beforeRequest = opts.beforeRequest;
+    opts.beforeRequest = (value: AjaxOptions, xhr: XMLHttpRequest | null, loading?: Loading | null) => {
+      loadingInstance = loading ?? null;
+      beforeRequest?.(value, xhr, loading);
+    };
 
-    return returnPromise
-      .then((response: any) => {
-        if (response.loadingInstance) response.loadingInstance.hide();
-        return Promise.resolve(response);
-      })
-      .catch((error: any) => {
-        if (error.loadingInstance) error.loadingInstance.hide();
-        return Promise.reject(error);
-      });
+    try {
+      const response = await (useFetch && this.isFetchSupported && opts.fetchMode === "fetch"
+        ? this.fetchAjax.request(url, ajaxMethod, opts)
+        : this.xhrAjax.request(url, ajaxMethod, opts));
+      loadingInstance = loadingInstance ?? (response as { loadingInstance?: Loading | null } | null)?.loadingInstance ?? null;
+      return response;
+    } catch (error: any) {
+      loadingInstance = loadingInstance ?? error?.loadingInstance;
+      throw error;
+    } finally {
+      this.pendingRequestMap.delete(id);
+      loadingInstance?.hide();
+    }
   }
 
   /**

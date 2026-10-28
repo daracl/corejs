@@ -1,4 +1,4 @@
-import { ajaxCallback } from "@t/callbackFunction";
+import { ajaxCallback, OptionCallback } from "@t/callbackFunction";
 import { LoadingOptions } from "../LoadingOptions";
 
 
@@ -16,12 +16,36 @@ export interface GlobalAjaxOptions {
   validMethods?: string[];
   beforeRequest?: ajaxCallback;
   beforeResponse?: ajaxCallback;
-  fetchMode?: "fetch"|"xhr";
+  /** External cancellation; never aborted by the library. */
+  signal?: AbortSignal;
+  /** XHR supports same-origin/include; omit requires fetch. */
+  credentials?: RequestCredentials;
+  /** Query parameters for any HTTP method. GET data remains supported. */
+  params?: Record<string, unknown>;
+  /** false disables the loader even when globally enabled. */
+  enableLoader?: boolean;
+  /** Override the instance transport for this request. */
+  fetchMode?: "fetch" | "xhr";
+  /** Defaults to HTTP 200-299. */
+  validateStatus?: (status: number) => boolean;
+
 }
 
 
 
 export interface AjaxOptions {
+  /** External cancellation; never aborted by the library. */
+  signal?: AbortSignal;
+  /** XHR supports same-origin/include; omit requires fetch. */
+  credentials?: RequestCredentials;
+  /** Query parameters for any HTTP method. GET data remains supported. */
+  params?: Record<string, unknown>;
+  /** false disables the loader even when globally enabled. */
+  enableLoader?: boolean;
+  /** Override the instance transport for this request. */
+  fetchMode?: "fetch" | "xhr";
+  /** Defaults to HTTP 200-299. */
+  validateStatus?: (status: number) => boolean;
   url?: string;
   method?: string;
   responseType?: string;

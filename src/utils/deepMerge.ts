@@ -29,7 +29,7 @@ function cloneObjectDeep(dst: any, src: any, excludeKeys:Set<string>): object {
   }
 
   for (const key of Object.keys(src)) {
-    if (excludeKeys.has(key)) continue;
+    if (excludeKeys.has(key) || key === "__proto__" || key === "constructor" || key === "prototype") continue;
 
     const val = (src as any)[key];
 
@@ -49,7 +49,7 @@ function cloneObjectDeep(dst: any, src: any, excludeKeys:Set<string>): object {
       if (!isObject(dst[key])) {
         dst[key] = {};
       }
-      cloneDeep(dst[key], val, excludeKeys);
+      dst[key] = cloneDeep(dst[key], val, excludeKeys);
     }
   }
   return dst;
@@ -58,6 +58,7 @@ function cloneObjectDeep(dst: any, src: any, excludeKeys:Set<string>): object {
 function cloneArrayDeep(dst: any, src: any[], excludeKeys:Set<string>) {
   const isObj = isPlainObject(dst);
   const isArr = isArray(dst);
+  const seen = new Set(isArr ? dst : []);
 
   for (let i = 0; i < src.length; i += 1) {
     const val = src[i];
@@ -72,7 +73,8 @@ function cloneArrayDeep(dst: any, src: any[], excludeKeys:Set<string>) {
     if (isObj) {
       (dst as any)[i] = newVal;
     } else {
-      if (isArr && dst.indexOf(newVal) < 0) {
+      if (isArr && (Number.isNaN(newVal) || !seen.has(newVal))) {
+        seen.add(newVal);
         dst.push(newVal);
       }
     }

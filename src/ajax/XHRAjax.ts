@@ -1,5 +1,5 @@
 import { AjaxOptions, GlobalAjaxOptions } from "@t/web/AjaxOptions";
-import { hasProperty, isFormData, isFunction, isObject , objectToQueryString } from "@/utils";
+import { isFormData, isObject , objectToQueryString } from "@/utils";
 import { Loading } from "@/Loading";
 import { AjaxAbstract } from "./AjaxAbstract";
 
@@ -15,117 +15,71 @@ export class XHRAjax extends AjaxAbstract {
   }
 
   public async request(url: string, method: string, opts: AjaxOptions) {
+    if (opts.credentials === "omit") {
+      throw new TypeError('credentials="omit" requires fetch; XHR cannot omit same-origin cookies.');
+    }
+    let cleanup = () => {};
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
-
-      // 준비: 데이터가 FormData 또는 파일을 포함하는지 검사하고 필요시 FormData로 변환
       const hasFormData = isFormData(opts.data);
       const containsFile = !hasFormData && this.containsFile(opts.data);
-      let preparedData: any = opts.data;
-
-      if (containsFile) {
-        preparedData = this.buildFormDataFromObject(opts.data);
-      }
-     
-      // GET 요청이면 쿼리스트링으로 처리 (FormData인 경우는 URL에 붙이지 않음)
-      const finalUrl = this.getUrlWithData(url, method, preparedData);
-
+      const preparedData = containsFile ? this.buildFormDataFromObject(opts.data) : opts.data;
+      const finalUrl = this.getRequestUrl(url, method, preparedData, opts.params);
       xhr.open(method, finalUrl, opts.async !== false);
-
       if (opts.timeout && opts.timeout > 0) xhr.timeout = opts.timeout;
-
-      // headers 설정 — FormData 전송 시 Content-Type을 직접 설정하면 boundary가 깨지므로 설정하지 않음
+      if (opts.credentials !== undefined) xhr.withCredentials = opts.credentials === "include";
       this.setHeaders(xhr, opts, hasFormData || containsFile);
 
-      // ...existing code...
-      xhr.open(method, finalUrl, opts.async !== false);
+      let loadingInstance: Loading | null = null;
+      let settled = false;
+      const fail = (type: "network" | "http" | "timeout" | "abort", error?: any) => {
+        if (settled) return;
+        settled = true;
+        reject(this.createError({ type, xhr, loadingInstance, error }));
+      };
+      const onAbort = () => { xhr.abort(); fail("abort"); };
+      cleanup = () => opts.signal?.removeEventListener("abort", onAbort);
+      opts.signal?.addEventListener("abort", onAbort, { once: true });
 
-      if (opts.timeout && opts.timeout > 0) xhr.timeout = opts.timeout;
-
-      // headers 설정 — FormData 전송 시 Content-Type을 직접 설정하면 boundary가 깨지므로 설정하지 않음
-      this.setHeaders(xhr, opts, hasFormData || containsFile);
-
-      // progress 콜백(업로드/다운로드) 등록
-      // opts.onUploadProgress?: (event: ProgressEvent, meta?: any) => void
-      // opts.onDownloadProgress?: (event: ProgressEvent, meta?: any) => void
-      const onUploadProgress = opts.onUploadProgress;
-      const onDownloadProgress = opts.onDownloadProgress;
-
-      if (isFunction(onUploadProgress) && xhr.upload) {
-        xhr.upload.onprogress = (ev: ProgressEvent) => {
-          try {
-            onUploadProgress({ xhr, ev });
-          } catch (e) {
-            onDownloadProgress({ xhr, ev , error : e });
-          }
-        };
-      }
-
-      if (isFunction(onDownloadProgress)) {
-        xhr.onprogress = (ev: ProgressEvent) => {
-          try {
-            onDownloadProgress({ xhr, ev });
-          } catch (e) {
-            onDownloadProgress({ xhr, ev , error : e });
-          }
-        };
-      }
-
-      const { loadingInstance } = this.prepareRequest(opts, xhr);
-
-      let errorHandled = false; // 중복 reject 방지용
       xhr.onreadystatechange = () => {
-        if (xhr.readyState === XMLHttpRequest.DONE) {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            if (!errorHandled) {
-              const response = this.parseResponse(xhr, opts);
-              resolve({ ...response, loadingInstance });
-            } 
-          }else if(xhr.status > 0){
-            reject(this.createError({ type: "http", xhr, loadingInstance }))
-          }
-        }
+        if (settled || xhr.readyState !== XMLHttpRequest.DONE || xhr.status === 0) return;
+        try {
+          if (!this.isSuccess(xhr.status, opts)) { fail("http"); return; }
+          const result = { ...this.parseResponse(xhr, opts), xhr, config: opts, loadingInstance };
+          opts.beforeResponse?.(result, xhr, loadingInstance);
+          settled = true;
+          resolve(result);
+        } catch (error) { fail("network", error); }
       };
-
-      xhr.onerror = () => {
-        if (errorHandled) return;
-        errorHandled = true;
-        reject(this.createError({ type: "network", xhr, loadingInstance }))
-      };
-
-      xhr.ontimeout = () => {
-        if (errorHandled) return;
-        errorHandled = true;
-        reject(this.createError({ type: "timeout", xhr, loadingInstance }))
-      };
-
-      xhr.onabort = () => {
-        if (errorHandled) return;
-        errorHandled = true;
-        reject(this.createError({ type: "abort", xhr, loadingInstance }))
+      xhr.onerror = () => fail("network");
+      xhr.ontimeout = () => fail("timeout");
+      xhr.onabort = () => fail("abort");
+      if (opts.onUploadProgress && xhr.upload) {
+        xhr.upload.onprogress = ev => opts.onUploadProgress!({ xhr, ev });
+      }
+      if (opts.onDownloadProgress) {
+        xhr.onprogress = ev => opts.onDownloadProgress!({ xhr, ev });
       }
 
-      // 전송: GET 혹은 데이터가 없는 경우는 send(); FormData가 준비된 경우는 그대로 전송; JSON/Object일 경우 적절히 직렬화
-      if (method === "GET" || !preparedData) {
-        xhr.send();
-      } else if (isFormData(preparedData)) {
-        xhr.send(preparedData);
-      } else if (isObject(preparedData)) {
-        // JSON 전송을 기본으로 하되 headers에서 Content-Type이 다른 값으로 설정되어 있으면 그 값을 따름
-        const contentType = (opts.headers && (opts.headers as any)["Content-Type"]) || "";
-        if (contentType.includes("application/x-www-form-urlencoded")) {
-          xhr.send(objectToQueryString(preparedData));
+      try {
+        if (opts.signal?.aborted) { fail("abort"); return; }
+        loadingInstance = this.prepareRequest(opts, xhr).loadingInstance;
+        opts.beforeRequest?.(opts, xhr, loadingInstance);
+        if (opts.signal?.aborted || settled) { fail("abort"); return; }
+        if (method === "GET" || preparedData == null) {
+          xhr.send();
+        } else if (isFormData(preparedData)) {
+          xhr.send(preparedData);
+        } else if (isObject(preparedData)) {
+          const contentType = Object.entries(opts.headers || {}).find(([key]) => key.toLowerCase() === "content-type")?.[1] || "";
+          xhr.send(String(contentType).includes("application/x-www-form-urlencoded") ? objectToQueryString(preparedData) : JSON.stringify(preparedData));
         } else {
-          xhr.send(JSON.stringify(preparedData));
+          xhr.send(preparedData);
         }
-      } else {
-        // 기타 (문자열 등)
-        xhr.send(preparedData);
-      }
-    });
+      } catch (error) { fail("network", error); }
+    }).finally(() => cleanup());
   }
 
-  // 응답을 파싱합니다.
   private parseResponse(xhr: XMLHttpRequest, opts: AjaxOptions) {
     let responseText = xhr.responseText;
     let data: any = responseText;
@@ -164,9 +118,9 @@ export class XHRAjax extends AjaxAbstract {
   // 요청 headers를 설정합니다.
   // isFormData가 true이면 Content-Type을 설정하지 않아 브라우저가 boundary 포함한 적절한 헤더를 생성하도록 함
   private setHeaders(xhr: XMLHttpRequest, opts: AjaxOptions, isFormData = false) {
-    const headers = opts.headers || {};
+    const headers = { ...opts.headers };
     if (!isFormData) {
-      if (!hasProperty(headers, "Content-Type")) {
+      if (!Object.keys(headers).some(key => key.toLowerCase() === "content-type")) {
         headers["Content-Type"] = isObject(opts.data) ? "application/json" : "application/x-www-form-urlencoded";
       }
       for (const key of Object.keys(headers)) {
@@ -184,21 +138,21 @@ export class XHRAjax extends AjaxAbstract {
   // 요청 준비를 처리합니다.
   private prepareRequest(opts: AjaxOptions, xhr: XMLHttpRequest) {
     let loadingInstance: Loading | null = null;
-    const loaderSelector = opts.loaderContainer;
+    const loaderSelector = opts.enableLoader === false ? null : opts.loaderContainer;
 
     if (loaderSelector){
       if (opts.loaderOption?.enableCancelButton) {
         const originalCallback = opts.loaderOption.callback;
-        opts.loaderOption.callback = () => {
+        opts.loaderOption = { ...opts.loaderOption, callback: () => {
           xhr.abort();
-          if (originalCallback) originalCallback(opts);
-        };
+          return originalCallback?.(opts);
+        } };
       }
 
-      loadingInstance = new Loading(loaderSelector, opts.loaderOption);
+      loadingInstance = new Loading(loaderSelector, { ...opts.loaderOption, requestCount: 1 });
     }
 
-    if (opts.beforeRequest) opts.beforeRequest.call(null, opts, null, loadingInstance);
+
 
     return { loadingInstance };
   }

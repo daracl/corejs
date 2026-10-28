@@ -10,7 +10,7 @@ import { $querySelectorList } from "./dom-utils";
  * @returns {*}
  */
 export const styleClassSplit = (styleClass: string) => {
-  return styleClass.trim().split(/\s+/);
+  return styleClass.trim().split(/\s+/).filter(Boolean);
 };
 
 

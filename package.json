@@ -3,7 +3,10 @@
   "version": "0.0.5",
   "sideEffects": [
     "src/index.umd.ts",
-    "./style/*.scss"
+    "./style/*.scss",
+    "./style/*.css",
+    "./dist/*.umd.js",
+    "./dist/*.css"
   ],
   "description": "daracl core library",
   "author": {

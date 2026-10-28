@@ -17,9 +17,12 @@ export function getURLParams(checkUrl: string): any {
     const params = {} as any;
     
     // URLSearchParams 의 key 목록을 순회
-    for (const key of url.searchParams.keys()) {
-        // 동일한 key 가 여러 개일 수 있으므로 getAll() 사용
-        params[key] = url.searchParams.getAll(key);
+    for (const [key, value] of url.searchParams) {
+        if (Object.prototype.hasOwnProperty.call(params, key)) {
+            params[key].push(value);
+        } else {
+            Object.defineProperty(params, key, { value: [value], enumerable: true, configurable: true, writable: true });
+        }
     }
 
     return params;

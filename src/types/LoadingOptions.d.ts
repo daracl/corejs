@@ -14,6 +14,12 @@ export interface LoadingOptions {
    */
   enableTime?: boolean;
 
+  /** 같은 컨테이너에서 처리 중인 요청 수를 표시합니다. 기본값은 false입니다. */
+  enableRequestCount?: boolean;
+
+  /** 이 로딩 인스턴스가 담당하는 요청 수입니다. Ajax는 요청마다 1을 지정합니다. */
+  requestCount?: number;
+
   /**
    * 표시할 텍스트 내용.
    *

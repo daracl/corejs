@@ -3,7 +3,15 @@ import { isBlank, objectDeepMerge } from "./utils";
 
 
 const instanceMap: Record<string, Loading> = {};
-const centerLoadingIntervalObject: Record<string, number> = {};
+
+interface LoadingGroup {
+  renderer: Loading;
+  members: Set<Loading>;
+}
+
+// 선택자 문자열이 달라도 같은 DOM 컨테이너라면 하나의 화면을 공유합니다.
+const loadingGroups = new WeakMap<HTMLElement, LoadingGroup>();
+
 
 let G_LOADING_IDX =0;
 
@@ -13,6 +21,8 @@ let defaultOptions:Required<LoadingOptions> = {
 
   // 시간 표시 여부
   enableTime: false,
+  enableRequestCount: false,
+  requestCount: 0,
   // 표시 내용
   content: "",
   // background color
@@ -46,6 +56,9 @@ export class Loading {
   private loadingElement: HTMLElement | null;
   private options: Required<LoadingOptions>;
   private orginStylePosition = "";
+  private intervalId?: number;
+  private timeoutId?: number;
+  private group?: LoadingGroup;
 
   constructor(selector: string | HTMLElement | null | undefined, options : LoadingOptions = {}) {
 
@@ -65,7 +78,7 @@ export class Loading {
     if (!this.containerNode) return;
 
     this.options = objectDeepMerge(defaultOptions, options);
-    instanceMap[this.selector] = this;
+    if (this.selector) instanceMap[this.selector] = this;
 
     this.show();
   }
@@ -83,14 +96,41 @@ export class Loading {
   }
 
   private cancelHandler() {
-    const callback = this.options.callback;
-    if (callback) {
-      if (callback(this.options) !== false) {
-        this.hide();
-      }
-    } else {
-      this.hide();
+    // 공유 화면의 취소 버튼은 해당 화면에 연결된 요청들을 취소합니다.
+    for (const member of Array.from(this.group?.members ?? [this])) {
+      if (member.options.callback?.(member.options) !== false) member.hide();
     }
+  }
+
+  /**
+   * 이 인스턴스의 요청 수를 갱신하고 공유 화면에 합계를 표시합니다.
+   * @param count 진행 중인 요청 수
+   * @returns 없음
+   */
+  public setRequestCount(count: number): void {
+    this.options.requestCount = Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0;
+    this.updateRequestCount();
+  }
+
+  private updateRequestCount(): void {
+    const group = this.group;
+    const element = group?.renderer.loadingElement;
+    if (!group || !element) return;
+    let count = 0;
+    let enabled = false;
+    for (const member of group.members) {
+      enabled = enabled || member.options.enableRequestCount;
+      count += Number.isFinite(member.options.requestCount) ? Math.max(0, Math.floor(member.options.requestCount)) : 0;
+    }
+    let counter = element.querySelector<HTMLElement>(".daracl-cl-request-count");
+    if (!enabled) { counter?.remove(); return; }
+    if (!counter) {
+      counter = document.createElement("div");
+      counter.className = "daracl-cl-request-count";
+      counter.setAttribute("role", "status");
+      element.querySelector(".daracl-cl-image")?.insertAdjacentElement("afterend", counter);
+    }
+    counter.textContent = `진행 중 요청: ${count}`;
   }
 
   
@@ -101,6 +141,14 @@ export class Loading {
   public show (){
     const containerNode = this.containerNode;
     if (!containerNode) return;
+
+    const existingGroup = loadingGroups.get(containerNode);
+    if (existingGroup) {
+      this.group = existingGroup;
+      existingGroup.members.add(this);
+      this.updateRequestCount();
+      return;
+    }
 
     if (containerNode.querySelector(":scope >.daracl-cl")) return;
 
@@ -143,6 +191,9 @@ export class Loading {
     containerNode.insertAdjacentHTML("afterbegin", template);
 
     this.loadingElement = containerNode.querySelector(":scope >.daracl-cl");
+    this.group = { renderer: this, members: new Set([this]) };
+    loadingGroups.set(containerNode, this.group);
+    this.updateRequestCount();
 
     if (opts.enableCancelButton) {
       this.loadingElement?.querySelector(".daracl-cl-btn")
@@ -152,13 +203,15 @@ export class Loading {
     if (opts.enableTime) {
       const loadingTimeElement = this.loadingElement?.querySelector(".daracl-cl-time") as HTMLElement;
       let sec = 0;
-      centerLoadingIntervalObject[this.selector] = window.setInterval(() => {
+      this.intervalId = window.setInterval(() => {
         loadingTimeElement.innerText = `${++sec}`;
       }, 1000);
     }
 
     if (opts.timeout > 0) {
-      setTimeout(() => this.hide(), opts.timeout);
+      this.timeoutId = window.setTimeout(() => {
+        for (const member of Array.from(this.group?.members ?? [])) member.hide();
+      }, opts.timeout);
     }
   };
 
@@ -172,9 +225,10 @@ export class Loading {
   public setContent (content: string){
     if (!this.containerNode) return;
 
-    const existing = this.loadingElement?.querySelector(".daracl-cl-content");
+    const loadingElement = this.group?.renderer.loadingElement ?? this.loadingElement;
+    const existing = loadingElement?.querySelector(".daracl-cl-content");
     if (!existing) {
-      this.loadingElement?.querySelector(".daracl-cl-image")
+      loadingElement?.querySelector(".daracl-cl-image")
         ?.insertAdjacentHTML("afterend", `<div class="daracl-cl-content">${content}</div>`);
     } else {
       existing.innerHTML = content;
@@ -189,24 +243,31 @@ export class Loading {
    * @param {?boolean} [flag] 
    */
   public hide (flag?: boolean){
-    if (this.containerNode) {
-      this.containerNode.style.position = this.orginStylePosition || "";
-
-      const loadingEle = this.containerNode.querySelector(":scope >.daracl-cl");
-
-      if (loadingEle) {
-        this.containerNode.removeChild(loadingEle);
-      }
-
-      if (this.options.enableTime) {
-        clearInterval(centerLoadingIntervalObject[this.selector]);
-        delete centerLoadingIntervalObject[this.selector];
-      }
-    }
-
-    if (flag !== false) {
+    const group = this.group;
+    if (!group || !group.members.delete(this)) return;
+    if (flag !== false && instanceMap[this.selector] === this) {
       delete instanceMap[this.selector];
+      const replacement = Array.from(group?.members ?? []).find(member => member.selector === this.selector);
+      if (replacement) instanceMap[this.selector] = replacement;
     }
+    if (group?.members.size) {
+      this.updateRequestCount();
+      if (this !== group.renderer) this.group = undefined;
+      return;
+    }
+    const renderer = group?.renderer ?? this;
+    window.clearInterval(renderer.intervalId);
+    window.clearTimeout(renderer.timeoutId);
+    renderer.intervalId = undefined;
+    renderer.timeoutId = undefined;
+    if (renderer.containerNode && renderer.loadingElement) {
+      renderer.containerNode.style.position = renderer.orginStylePosition || "";
+      renderer.loadingElement.remove();
+      renderer.loadingElement = null;
+    }
+    if (renderer.containerNode) loadingGroups.delete(renderer.containerNode);
+    this.group = undefined;
+    renderer.group = undefined;
   };
 
   
@@ -219,7 +280,8 @@ export class Loading {
    */
   public static destroy(selector: string) {
     if (instanceMap[selector]) {
-      instanceMap[selector].hide(false);
+      const instance = instanceMap[selector];
+      for (const member of Array.from(instance.group?.members ?? [instance])) member.hide();
       delete instanceMap[selector];
     }
   }

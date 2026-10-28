@@ -2,14 +2,15 @@ import express, { Request, Response, Express } from "express";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { randomUUID } from "crypto";
 import { items } from "./data/items";
 import cors from "cors";
 
 const app: Express = express();
 
 // Ensure upload directory exists
-const uploadDir = "c:/zzz/uploads";
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
+const uploadDir = process.env.DARACL_UPLOAD_DIR || path.resolve(process.cwd(), "test-results", "uploads");
+fs.mkdirSync(uploadDir, { recursive: true });
 
 // Set up multer
 const storage = multer.diskStorage({
@@ -17,7 +18,7 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
+    cb(null, randomUUID() + path.extname(file.originalname));
   },
 });
 

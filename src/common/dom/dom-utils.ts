@@ -25,7 +25,7 @@ export function $querySelectorList(el: ElementType): Node[] {
   }
 
   if (el instanceof Document) {
-    return [document];
+    return [el];
   }
 
   if (el instanceof Element) {
@@ -46,7 +46,7 @@ export function $querySelector(el: ElementType): Document|Element|null {
   }
 
   if (el instanceof Document) {
-    return document;
+    return el;
   }
 
   if (el instanceof Element) {

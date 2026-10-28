@@ -26,22 +26,9 @@ export class FetchAjax extends AjaxAbstract {
       preparedData = this.buildFormDataFromObject(opts.data);
     }
 
-    const finalUrl = this.getUrlWithData(url, method, preparedData);
+    const finalUrl = this.getRequestUrl(url, method, preparedData, opts.params);
 
-    const { loadingInstance, abortController } = this.prepareRequest(opts);
-
-    // timeout 처리
-    let timeoutId: any = null;
-    let isTimeout = false;
-    if (opts.timeout && opts.timeout > 0 && abortController) {
-      timeoutId = setTimeout(() =>{
-        isTimeout = true; // 타임아웃 발생 표시
-        abortController.abort()
-       }, opts.timeout);
-    }
-
-    // 요청 바디 / 헤더 준비
-    const fetchHeaders: Record<string, string> | undefined = opts.headers ? { ...opts.headers } : undefined;
+    const fetchHeaders: Record<string, string> = { ...opts.headers };
     let body: any = undefined;
 
     if (method !== "GET") {
@@ -77,16 +64,28 @@ export class FetchAjax extends AjaxAbstract {
       }
     }
 
+    const { loadingInstance, abortController } = this.prepareRequest(opts);
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    let isTimeout = false;
+    const onAbort = () => abortController?.abort();
+    opts.signal?.addEventListener("abort", onAbort, { once: true });
+    if (opts.signal?.aborted) onAbort();
+
     const fetchOptions: RequestInit = {
       method,
       headers: fetchHeaders,
       body,
-      signal: abortController?.signal,
+      signal: abortController?.signal ?? opts.signal,
+      credentials: opts.credentials,
     };
 
     try {
+      if (opts.timeout && opts.timeout > 0 && abortController) {
+        timeoutId = setTimeout(() => { isTimeout = true; abortController.abort(); }, opts.timeout);
+      }
+      if (fetchOptions.signal?.aborted) throw Object.assign(new Error("Request aborted"), { name: "AbortError" });
       const response = await fetch(finalUrl, fetchOptions);
-      if (timeoutId) clearTimeout(timeoutId);
+
 
       const text = await response.text();
       let data: any = text;
@@ -99,7 +98,7 @@ export class FetchAjax extends AjaxAbstract {
         }
       }
 
-      if (!response.ok) {
+      if (!this.isSuccess(response.status, opts)) {
         return Promise.reject(
           this.createError({
             type: "http",
@@ -112,20 +111,23 @@ export class FetchAjax extends AjaxAbstract {
         );
       }
 
-      return {
+      const result = {
         data,
         status: response.status,
         responseText: text,
         config: opts,
+        xhr: response,
         headers: this.parseFetchHeaders(response),
         loadingInstance,
       };
+      opts.beforeResponse?.(result, response, loadingInstance);
+      return result;
     } catch (err: any) {
       if (timeoutId) clearTimeout(timeoutId);
       
       // 타임아웃 여부 판단: AbortError 且 isTimeout 플래그가 true이면 timeout
       let errorType: "network" | "http" | "timeout" | "abort" = "network";
-      if (err.name === "AbortError") {
+      if (abortController?.signal.aborted || opts.signal?.aborted || err?.name === "AbortError") {
         errorType = isTimeout ? "timeout" : "abort";
       }
 
@@ -136,29 +138,37 @@ export class FetchAjax extends AjaxAbstract {
           loadingInstance,
         })
       );
+    } finally {
+      opts.signal?.removeEventListener("abort", onAbort);
+      if (timeoutId) clearTimeout(timeoutId);
     }
   }
 
   // 요청 준비를 처리합니다.
   private prepareRequest(opts: AjaxOptions): { loadingInstance: Loading | null; abortController: AbortController | null } {
     let loadingInstance: Loading | null = null;
-    let abortController: AbortController | null = null;
-    const loaderSelector = opts.loaderContainer;
+    let abortController: AbortController | null = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const loaderSelector = opts.enableLoader === false ? null : opts.loaderContainer;
 
     if (loaderSelector) {
       if (opts.loaderOption?.enableCancelButton && typeof AbortController !== "undefined") {
-        abortController = new AbortController();
+
         const originalCallback = opts.loaderOption.callback;
-        opts.loaderOption.callback = () => {
+        opts.loaderOption = { ...opts.loaderOption, callback: () => {
           abortController!.abort();
-          if (originalCallback) originalCallback(opts);
-        };
+          return originalCallback?.(opts);
+        } };
       }
 
-      loadingInstance = new Loading(loaderSelector, opts.loaderOption);
+      loadingInstance = new Loading(loaderSelector, { ...opts.loaderOption, requestCount: 1 });
     }
 
-    if (opts.beforeRequest) opts.beforeRequest.call(null, opts, null, loadingInstance);
+    try {
+      opts.beforeRequest?.(opts, null, loadingInstance);
+    } catch (error) {
+      loadingInstance?.hide();
+      throw error;
+    }
 
     return { loadingInstance, abortController };
   }

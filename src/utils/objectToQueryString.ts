@@ -9,9 +9,9 @@ import { isObject } from "./isObject";
 export function objectToQueryString(param: any): string {
   return Object.keys(param)
     .map((key) => {
-      if (param.hasOwnProperty(key) && param[key] !== undefined) {
+      if (param[key] !== undefined) {
         const val = param[key];
-        return `${key}=${ isObject(val) ? JSON.stringify(val) : val }`;
+        return `${encodeURIComponent(key)}=${encodeURIComponent(isObject(val) ? JSON.stringify(val) : String(val))}`;
       }
     })
     .filter(Boolean)

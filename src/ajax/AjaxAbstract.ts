@@ -32,13 +32,25 @@ export abstract class AjaxAbstract {
     return false;
   }
 
+  protected getRequestUrl(url: string, method: string, data: any, params?: Record<string, unknown>): string {
+    return this.getUrlWithData(this.getUrlWithData(url, method, data), "GET", params);
+  }
+
+  protected isSuccess(status: number, opts: AjaxOptions): boolean {
+    return opts.validateStatus ? opts.validateStatus(status) : status >= 200 && status < 300;
+  }
+
   // GET용: URL에 데이터를 쿼리 스트링으로 추가합니다.
   protected getUrlWithData(url: string, method:string, data: any): string {
     if (method !== "GET") return url;
     if (!data) return url;
     if (isFormData(data)) return url;
     const qs = objectToQueryString(data);
-    return url + (url.includes("?") ? "&" : "?") + qs;
+    if (!qs) return url;
+    const hashIndex = url.indexOf("#");
+    const base = hashIndex < 0 ? url : url.slice(0, hashIndex);
+    const hash = hashIndex < 0 ? "" : url.slice(hashIndex);
+    return base + (base.includes("?") ? "&" : "?") + qs + hash;
   }
 
   // 단순 객체(파일 포함 가능)를 FormData로 변환
