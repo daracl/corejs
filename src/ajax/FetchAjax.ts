@@ -1,8 +1,7 @@
-import { AjaxOptions, GlobalAjaxOptions } from "@t/web/AjaxOptions";
-import { Loading } from "@/Loading";
-import { isObject, objectToQueryString } from "@/utils";
+import { AjaxOptions, GlobalAjaxOptions } from "../types/web/AjaxOptions";
+import { Loading } from "../Loading";
+import { isFormData, isObject, objectToQueryString } from "../utils";
 import { AjaxAbstract } from "./AjaxAbstract";
-import { isFormData } from "@/utils/isFormData";
 
 /**
  * FetchAjax 클래스
@@ -48,7 +47,7 @@ export class FetchAjax extends AjaxAbstract {
             if (k.toLowerCase() === "content-type") delete fetchHeaders[k];
           });
         }
-      } else if (isObject(preparedData)) {
+      } else if (isObject(preparedData) && !this.isRawBody(preparedData)) {
         const contentType = (fetchHeaders && (fetchHeaders["Content-Type"] || fetchHeaders["content-type"])) || "";
         if (contentType.includes("application/x-www-form-urlencoded")) {
           body = objectToQueryString(preparedData);

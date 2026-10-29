@@ -1,8 +1,8 @@
-import { AjaxOptions, GlobalAjaxOptions } from "@t/web/AjaxOptions";
+import { AjaxOptions, GlobalAjaxOptions } from "../types/web/AjaxOptions";
 import { FetchAjax } from "./FetchAjax";
 import { XHRAjax } from "./XHRAjax";
-import { objectDeepMerge } from "@/utils";
-import type { Loading } from "@/Loading";
+import { objectDeepMerge } from "../utils";
+import type { Loading } from "../Loading";
 
 /** 진행 중인 요청의 조회 정보입니다. 본문과 인증 헤더는 보관하지 않습니다. */
 export interface PendingAjaxRequest {

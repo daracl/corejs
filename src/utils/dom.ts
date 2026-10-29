@@ -24,6 +24,7 @@ export function createHTMLElement(tagName: string, className?: string, attrs: El
   const element = document.createElement(tagName);
   if (className) addClass(element, className);
   for (const [key, value] of Object.entries(attrs)) {
+    if (value === null || value === undefined) continue;
     if (key === "style" && value !== null && typeof value === "object") {
       const styles: Record<string, unknown> = {};
       for (const [name, item] of Object.entries(value)) styles[camelToKebab(name)] = item;

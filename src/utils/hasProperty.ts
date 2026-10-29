@@ -6,5 +6,5 @@
  * @returns 객체에 해당 속성이 있으면 true, 그렇지 않으면 false
  */
 export function hasProperty(obj: any, prop: string | number | symbol): boolean {
-  return obj != null && obj != undefined && Object.prototype.hasOwnProperty.call(obj, prop);
+  return obj != null && Object.prototype.hasOwnProperty.call(obj, prop);
 }

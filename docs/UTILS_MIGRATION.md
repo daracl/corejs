@@ -29,7 +29,7 @@
 
 | 원본 기능 | 사용할 core API | 주의 |
 | --- | --- | --- |
-| isUndefined, isString, isFunction, isArray, isBlank, isPlainObject, isObject, isDate | 기존 동일 이름 | 기존 core의 판정 계약 유지. 프로젝트마다 숫자 문자열·null prototype·배열·빈 값 판정이 달랐으므로 단순 import 교체 전에 확인 |
+| isUndefined, isString, isFunction, isArray, isBlank, isPlainObject, isObject, isDate | 기존 동일 이름 | 함수별 판정 계약 확인. isPlainObject는 null prototype과 다른 iframe의 일반 객체도 포함하며, 숫자 문자열·배열·빈 값 판정은 프로젝트마다 다를 수 있음 |
 | hasOwnProp | hasProperty | own property 검사 |
 | replaceXss, unReplace | xss, unXss | 문자열 HTML escape/unescape |
 | escapeHtml | xss 또는 escapeHTML | drift의 백틱 escape까지 동일한 함수는 아니므로 속성은 setAttribute 사용 권장 |
@@ -54,7 +54,9 @@
 ## 이관하면서 구분·보완한 계약
 
 - `isNumber`는 실제 number 타입에서 NaN만 제외한다. 숫자 문자열까지 인정하는 원본 grid/form/role-builder의 isNumber는 core의 isNumeric과 비교해야 한다.
+- `isPlainObject`는 unknown을 받아 Record<string, unknown>으로 좁힌다. 일반 객체·null prototype·다른 iframe의 일반 객체를 포함하고 클래스와 사용자 정의 프로토타입은 제외한다. Symbol.toStringTag는 조회하지 않는다. cloneConfig·sameValue·getIn·toOptionObject 등도 이 판정 범위를 공유한다.
 - `cloneJson`은 JSON 손실 규칙, `cloneConfig`는 report-studio의 함수 보존·undefined 제거 규칙이다. 기존 deepCopy와 목적이 달라 별도 함수로 둔다. components shared/data의 동명 cloneConfig는 함수·undefined 등을 보존하므로 core deepCopy와 비교해야 한다.
+- `deepCopy`는 배열·일반 객체·Date·RegExp·Map·Set의 순환·공유 참조를 보존하며 복사한다. undefined·희소 배열·열거 가능한 Symbol 키도 보존하고, `__proto__`·`constructor`·`prototype`은 제외한다. 클래스·DOM·함수 등은 참조를 유지하며 접근자는 값을 읽어 일반 속성으로 복사한다. 다른 iframe의 일반 객체는 현재 문서의 일반 객체로 복사한다. 참조로 유지하던 RegExp·Map·Set이 새 객체가 되고 세 가지 키가 제외되는 변경은 호출부에서 유의해야 한다.
 - `isSameValue`는 문자열 비교, `sameValue`는 객체/배열 내용 비교, `jsonEqual`은 JSON 직렬화 비교다. 서로 대체하지 않는다.
 - `toOptionObject`는 deepCopy, `toObjectForm`은 얕은 복사와 문자열 축약형을 지원한다.
 - 원본 `replaceMesasgeFormat`의 오타는 새 API에서 `renderTemplate`로 정리했다. 조건 비교·{{key}} 치환을 지원하며 HTML 이스케이프는 하지 않는다. 상속된 프로퍼티는 치환하지 않는다.

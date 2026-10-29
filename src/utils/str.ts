@@ -67,7 +67,13 @@ export function allTrim(s: string): string {
 export function matchCount(str: string, matchString: string): number {
   if (isBlank(str)) return 0;
 
-  const re = new RegExp(matchString, "ig");
+  let re: RegExp;
+  try {
+    re = new RegExp(matchString, "ig");
+  } catch {
+    // 잘못된 정규식 문자열은 리터럴로 검색합니다.
+    re = new RegExp(matchString.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "ig");
+  }
   const resultArray = str.match(re);
   return resultArray == null ? 0 : resultArray.length;
 }
@@ -87,11 +93,11 @@ export function leftPad(str: any, len: number, ch = "0"): string {
 /**
  * 왼쪽 문자 채우기 + 길이 고정(clamp)
  *
- * padSize(len)보다 문자열이 길 경우 → 오른쪽 기준으로 잘라내어 길이를 고정한다.
+ * padSize(len)보다 문자열이 길 경우 → 앞에서부터 len만큼만 남기고 잘라낸다.
  * padSize(len)보다 문자열이 짧으면 → 왼쪽에 ch 문자를 채워서 길이를 맞춘다.
  *
  * 예)
- * leftPadClamp("123456", 4, "0") → "3456"
+ * leftPadClamp("123456", 4, "0") → "1234"
  * leftPadClamp("12", 4, "0")     → "0012"
  *
  * @param {string} str  문자열
@@ -118,11 +124,11 @@ export function rightPad(str: any, len: number, ch = "0"): string {
 /**
  * 오른쪽 문자 채우기 + 길이 고정(clamp)
  *
- * padSize(len)보다 문자열이 길 경우 → 오른쪽 기준으로 잘라내어 길이를 고정한다.
+ * padSize(len)보다 문자열이 길 경우 → 앞에서부터 len만큼만 남기고 잘라낸다.
  * padSize(len)보다 문자열이 짧으면 → 오른쪽에 ch 문자를 채워서 길이를 맞춘다.
  *
  * 예)
- * rightPadClamp("123456", 4, "0") → "3456"
+ * rightPadClamp("123456", 4, "0") → "1234"
  * rightPadClamp("12", 4, "0")     → "1200"
  *
  * @param {string} str  문자열
@@ -173,7 +179,8 @@ export function unXss(inputText: string): string {
   let returnText = inputText;
 
   if (returnText) {
-    Object.keys(xssFilter).forEach((key) => {
+    // "&amp;"를 마지막에 되돌려야 "&amp;lt;"가 "<"로 이중 해제되지 않습니다.
+    Object.keys(xssFilter).reverse().forEach((key) => {
       returnText = returnText.replaceAll(xssFilter[key], key);
     });
   }
@@ -249,11 +256,11 @@ export function convertHtmlToText(html: string | null | undefined): string {
     .replaceAll(/<\/(p|div|li|h[1-6])>/gi, '\n')
     .replaceAll(/<[^>]*>/g, '')
     .replaceAll('&nbsp;', ' ')
-    .replaceAll('&amp;', '&')
     .replaceAll('&lt;', '<')
     .replaceAll('&gt;', '>')
     .replaceAll('&quot;', '"')
     .replaceAll('&#39;', "'")
+    .replaceAll('&amp;', '&')
     .replaceAll(/\n{3,}/g, '\n\n')
     .trim();
 }

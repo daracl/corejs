@@ -14,7 +14,7 @@ const require = createRequire(import.meta.url);
 
 function emitDeclarations(directory) {
   return new Promise((done, reject) => {
-    const args = [require.resolve('typescript/bin/tsc'), '--project', 'tsconfig.json', '--emitDeclarationOnly'];
+    const args = [require.resolve('typescript/bin/tsc'), '--project', 'tsconfig-build.json', '--emitDeclarationOnly'];
     if (directory) args.push('--declarationDir', resolve(directory, 'types'), '--outDir', resolve(directory, 'types'));
     const child = spawn(process.execPath, args, {
       cwd: root, stdio: 'inherit', shell: false,
@@ -28,8 +28,8 @@ function emitDeclarations(directory) {
 }
 
 async function emitBundles(directory) {
-  // 같은 출력에 쓰는 Vite 빌드는 순서대로 실행합니다.
-  for (const mode of ['production', 'development']) {
+  // production 과 development 는 출력 위치가 달라 병렬로 실행하고, 같은 출력에 쓰는 ES/CJS 와 UMD 는 순서대로 실행합니다.
+  const emitMode = async (mode) => {
     for (const [createConfig, format] of [[esConfig, 'es-cjs'], [umdConfig, 'umd']]) {
       const config = createConfig({ command: 'build', mode });
       await viteBuild({
@@ -42,7 +42,8 @@ async function emitBundles(directory) {
         },
       });
     }
-  }
+  };
+  await Promise.all(['production', 'development'].map(emitMode));
 }
 
 async function emitUtils(directory) {
@@ -53,9 +54,11 @@ async function emitUtils(directory) {
 
 // 실패해도 나머지 출력 작업이 끝난 후 종료합니다.
 export async function buildOutputs(directory) {
+  const startedAt = performance.now();
   const results = await Promise.allSettled([emitDeclarations(directory), emitBundles(directory), emitUtils(directory)]);
   const errors = results.filter(result => result.status === 'rejected').map(result => result.reason);
   if (errors.length) throw new AggregateError(errors, errors.map(error => error.message).join('\n'));
+  console.log(`선언·번들 생성 완료: ${((performance.now() - startedAt) / 1000).toFixed(2)}초`);
 }
 
 export async function buildProject() {

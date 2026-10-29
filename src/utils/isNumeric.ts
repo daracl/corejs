@@ -8,7 +8,7 @@ import { isString } from "./isString";
  * @returns {boolean}
  */
 export function isNumeric(value: any, typeIgnore: boolean | undefined = false): boolean {
-  if (typeIgnore === true) return !Number.isNaN(value);
+  if (typeIgnore === true) return !Number.isNaN(Number(value));
 
   return (typeof value === "number" || (isString(value) && value.trim() !== "" && !isNaN(parseFloat(value)))) && isFinite(Number(value));
 }

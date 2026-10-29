@@ -46,6 +46,8 @@ export const commonConfig = {
   },
   server: {
     host: '127.0.0.1',
+    // 형제 저장소의 파일이 개발 서버에 노출되지 않도록 범위를 제한합니다.
+    fs: { strict: true, allow: [__dirname] },
     port: 4171,
     open: true,
     watch: {

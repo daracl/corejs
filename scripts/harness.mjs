@@ -108,7 +108,7 @@ function audit(json) {
     else {
       if (parsed.config.compilerOptions?.strict !== true) add('error', 'tsconfig의 strict는 true여야 합니다.');
       for (const [alias, expected] of Object.entries({ '@/*': 'src/*', '@t/*': 'src/types/*' })) {
-        if (!parsed.config.compilerOptions?.paths?.[alias]?.includes(expected)) add('error', `tsconfig 별칭 불일치: ${alias}`);
+        if (!parsed.config.compilerOptions?.paths?.[alias]?.some(target => target.replace(/^\.\//, '') === expected)) add('error', `tsconfig 별칭 불일치: ${alias}`);
       }
       const jest = require(join(root, 'jest.config.js'));
       for (const alias of ['^@/(.*)$', '^@t/(.*)$']) {

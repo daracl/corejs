@@ -1,5 +1,5 @@
-import { AjaxOptions, GlobalAjaxOptions } from "@t/web/AjaxOptions";
-import { isArray, isFormData, isObject, objectToQueryString } from "@/utils";
+import { AjaxOptions, GlobalAjaxOptions } from "../types/web/AjaxOptions";
+import { isArray, isFormData, isObject, objectToQueryString } from "../utils";
 
 /**
  * Ajax 클래스
@@ -32,6 +32,12 @@ export abstract class AjaxAbstract {
     return false;
   }
 
+  // JSON으로 직렬화하면 안 되는 본문(URLSearchParams, ArrayBuffer, typed array)인지 검사
+  protected isRawBody(data: any): boolean {
+    return (typeof URLSearchParams !== "undefined" && data instanceof URLSearchParams)
+      || (typeof ArrayBuffer !== "undefined" && (data instanceof ArrayBuffer || ArrayBuffer.isView(data)));
+  }
+
   protected getRequestUrl(url: string, method: string, data: any, params?: Record<string, unknown>): string {
     return this.getUrlWithData(this.getUrlWithData(url, method, data), "GET", params);
   }
@@ -45,7 +51,7 @@ export abstract class AjaxAbstract {
     if (method !== "GET") return url;
     if (!data) return url;
     if (isFormData(data)) return url;
-    const qs = objectToQueryString(data);
+    const qs = typeof URLSearchParams !== "undefined" && data instanceof URLSearchParams ? data.toString() : objectToQueryString(data);
     if (!qs) return url;
     const hashIndex = url.indexOf("#");
     const base = hashIndex < 0 ? url : url.slice(0, hashIndex);

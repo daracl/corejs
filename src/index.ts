@@ -1,5 +1,7 @@
 
 export * from "./ajax/Ajax";
+export type { AjaxOptions, GlobalAjaxOptions } from "./types/web/AjaxOptions";
+export type { LoadingOptions } from "./types/LoadingOptions";
 export * from "./Loading";
 export * from "./utils";
 export * from "./common/dom";

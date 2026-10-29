@@ -21,6 +21,14 @@ export function isEmpty(value: any): boolean {
     return value.length === 0; // 배열의 길이가 0인 경우
   }
 
+  if (value instanceof Map || value instanceof Set) {
+    return value.size === 0; // Map/Set은 항목 수로 판단
+  }
+
+  if (value instanceof Date) {
+    return false; // Date는 키가 없어도 값이 있는 객체
+  }
+
   if (typeof value === "object") {
     return Object.keys(value).length === 0; // 객체의 키가 없는 경우
   }

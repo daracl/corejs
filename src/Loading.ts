@@ -1,4 +1,4 @@
-import { LoadingOptions } from "@t/LoadingOptions";
+import { LoadingOptions } from "./types/LoadingOptions";
 import { isBlank, objectDeepMerge } from "./utils";
 
 
@@ -108,6 +108,7 @@ export class Loading {
    * @returns 없음
    */
   public setRequestCount(count: number): void {
+    if (!this.options) return; // 컨테이너를 찾지 못한 인스턴스
     this.options.requestCount = Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0;
     this.updateRequestCount();
   }

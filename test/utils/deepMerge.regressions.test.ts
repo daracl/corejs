@@ -1,6 +1,20 @@
 import { objectDeepMerge, arrayDeepMerge } from "../../src/utils/deepMerge";
 
 describe("깊은 병합의 안전성과 참조 처리", () => {
+  it.each(["__proto__", "constructor", "prototype"])("%s 키는 첫 소스·후속 소스·배열 내부에서 읽지 않고 제외한다", (key) => {
+    const readBlocked = jest.fn(() => { throw new Error("blocked key read"); });
+    const value = { safe: 1 };
+    Object.defineProperty(value, key, { enumerable: true, get: readBlocked });
+    const result = objectDeepMerge(value, { nested: value, items: [value] }, { _excludeKeys: [] });
+    expect(result).toEqual({ safe: 1, nested: { safe: 1 }, items: [{ safe: 1 }] });
+    const array = arrayDeepMerge([value], [{ nested: value }]);
+    expect(array).toEqual([{ safe: 1 }, { nested: { safe: 1 } }]);
+    for (const item of [result, result.nested, result.items[0], array[0], array[1].nested]) {
+      expect(Object.prototype.hasOwnProperty.call(item, key)).toBe(false);
+    }
+    expect(readBlocked).not.toHaveBeenCalled();
+  });
+
   it("상속받은 함수나 객체를 병합 대상으로 사용하지 않는다", () => {
     const before = Object.getOwnPropertyDescriptors(Object.prototype.toString);
     const result = objectDeepMerge({ toString: { mergeProbe: 123 }, valueOf: { nested: true } });
@@ -103,7 +117,7 @@ describe("깊은 병합의 안전성과 참조 처리", () => {
     expect(model).toEqual(new Model());
   });
 
-  it("null prototype 객체를 복사하며 전역 isPlainObject의 계약은 변경하지 않는다", () => {
+  it("null prototype 객체의 프로토타입과 중첩 데이터를 복사한다", () => {
     const source = Object.assign(Object.create(null), { value: { a: 1 } });
     const result = objectDeepMerge({ source });
     expect(Object.getPrototypeOf(result.source)).toBeNull();

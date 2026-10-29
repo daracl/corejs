@@ -22,8 +22,9 @@ export function stopPreventCancel (e: Event): void {
  */
 export function eventPosition (e: Event): Position {
   let evt;
-  if (typeof TouchEvent !== "undefined" && e instanceof TouchEvent && e.touches.length > 0) {
-    evt = e.touches[0];
+  if (typeof TouchEvent !== "undefined" && e instanceof TouchEvent && (e.touches.length > 0 || e.changedTouches.length > 0)) {
+    // touchend는 touches가 비어 있어 changedTouches를 사용합니다.
+    evt = e.touches[0] ?? e.changedTouches[0];
   } else if (e instanceof MouseEvent) {
     evt = e;
   } else {

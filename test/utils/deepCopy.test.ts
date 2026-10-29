@@ -10,7 +10,7 @@ describe("deepCopy", () => {
   ];
 
   it("obj1 check", () => {
-    expect({ name: "daracl", age: 30 }).toMatchObject(deepCopy(obj1));
+    expect(deepCopy(obj1)).toEqual({ name: "daracl", age: 30 });
   });
 
   it("arr1", () => {

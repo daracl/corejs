@@ -1,4 +1,4 @@
-import { ajaxCallback, OptionCallback } from "@t/callbackFunction";
+import { ajaxCallback, OptionCallback } from "../callbackFunction";
 import { LoadingOptions } from "../LoadingOptions";
 
 

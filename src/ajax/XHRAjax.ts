@@ -1,6 +1,6 @@
-import { AjaxOptions, GlobalAjaxOptions } from "@t/web/AjaxOptions";
-import { isFormData, isObject , objectToQueryString } from "@/utils";
-import { Loading } from "@/Loading";
+import { AjaxOptions, GlobalAjaxOptions } from "../types/web/AjaxOptions";
+import { isFormData, isObject , objectToQueryString } from "../utils";
+import { Loading } from "../Loading";
 import { AjaxAbstract } from "./AjaxAbstract";
 
 /**
@@ -70,7 +70,7 @@ export class XHRAjax extends AjaxAbstract {
           xhr.send();
         } else if (isFormData(preparedData)) {
           xhr.send(preparedData);
-        } else if (isObject(preparedData)) {
+        } else if (isObject(preparedData) && !this.isRawBody(preparedData)) {
           const contentType = Object.entries(opts.headers || {}).find(([key]) => key.toLowerCase() === "content-type")?.[1] || "";
           xhr.send(String(contentType).includes("application/x-www-form-urlencoded") ? objectToQueryString(preparedData) : JSON.stringify(preparedData));
         } else {
@@ -121,7 +121,7 @@ export class XHRAjax extends AjaxAbstract {
     const headers = { ...opts.headers };
     if (!isFormData) {
       if (!Object.keys(headers).some(key => key.toLowerCase() === "content-type")) {
-        headers["Content-Type"] = isObject(opts.data) ? "application/json" : "application/x-www-form-urlencoded";
+        headers["Content-Type"] = isObject(opts.data) && !this.isRawBody(opts.data) ? "application/json" : "application/x-www-form-urlencoded";
       }
       for (const key of Object.keys(headers)) {
         if (headers[key]) xhr.setRequestHeader(key, headers[key]);

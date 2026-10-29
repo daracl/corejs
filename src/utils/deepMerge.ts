@@ -1,9 +1,6 @@
 import { isArray } from "./isArray";
 import { isPlainObject } from "./isPlainObject";
 
-// null prototype 객체도 병합하되 클래스·DOM·함수의 내부 상태는 순회하지 않습니다.
-const isMergeObject = (value: any): boolean => isPlainObject(value) ||
-  (value !== null && typeof value === "object" && Object.getPrototypeOf(value) === null);
 const hasOwn = (value: object, key: string): boolean => Object.prototype.hasOwnProperty.call(value, key);
 
 function setOwn(target: object, key: string, value: any): void {
@@ -11,7 +8,7 @@ function setOwn(target: object, key: string, value: any): void {
 }
 
 /** 소스별 참조 표와 작업 목록으로 순환 참조와 깊은 중첩을 처리합니다. */
-function mergeSource(target: any, source: any, excludeKeys: Set<string>): void {
+function mergeSource(target: any, source: any, excludeKeys: Set<string>, replaceArrays = false): void {
   const copies = new WeakMap<object, any>();
   const tasks: (() => void)[] = [];
 
@@ -20,10 +17,11 @@ function mergeSource(target: any, source: any, excludeKeys: Set<string>): void {
     if (copies.has(value)) return copies.get(value);
     let result: any;
     if (isArray(value)) {
-      result = isArray(current) ? current : [];
-      tasks.push(() => mergeArray(result, value));
-    } else if (isMergeObject(value)) {
-      result = isMergeObject(current) ? current : Object.create(Object.getPrototypeOf(value));
+      // 배열 교체 모드는 기존 배열과 합치지 않고 중복 제거 없이 새 배열로 복사합니다.
+      result = replaceArrays || !isArray(current) ? [] : current;
+      tasks.push(() => (replaceArrays ? value.forEach(item => result.push(copy(item))) : mergeArray(result, value)));
+    } else if (isPlainObject(value)) {
+      result = isPlainObject(current) ? current : Object.create(Object.getPrototypeOf(value));
       tasks.push(() => mergeObject(result, value));
     } else if (value instanceof Date) {
       result = new Date(value.getTime());
@@ -80,8 +78,11 @@ function mergeSource(target: any, source: any, excludeKeys: Set<string>): void {
  * - Date·RegExp·Map·Set은 복사하고 함수·DOM·기타 클래스 인스턴스는 참조를 유지합니다.
  * - 소스 내부의 순환 참조와 공유 참조를 유지합니다.
  * - undefined 값은 무시됩니다.
+ * - __proto__·constructor·prototype은 첫 소스를 포함한 모든 일반 객체에서 제외합니다.
  * - 마지막 인자로 {_excludeKeys: string[]} 형태의 옵션 객체를 전달하면
  *   해당 키들은 병합에서 제외됩니다 (첫 번째 소스에는 제외 적용되지 않음).
+ * - 옵션 객체에 {_arrays: 'replace'} 를 전달하면 중첩된 배열을 합치지 않고 뒤의 배열로 교체합니다.
+ *   (빈 배열도 교체되며 중복 제거를 하지 않습니다. 기본값은 'merge'이며 기존 동작과 같습니다.)
  *
  * 사용 예:
  * - 기본 병합
@@ -99,6 +100,10 @@ function mergeSource(target: any, source: any, excludeKeys: Set<string>): void {
  *   );
  *   // out2 -> { a: 1, b: 2, c: 3 } // 'a' 는 두번째 소스에서 덮어쓰지 않음
  *
+ * - 배열 교체 (_arrays)
+ *   objectDeepMerge({ list: [1, 2] }, { list: [3] }, { _arrays: 'replace' }) -> { list: [3] }
+ *   objectDeepMerge({ list: [1, 2] }, { list: [] }, { _arrays: 'replace' }) -> { list: [] }
+ *
  * - null / 함수 처리
  *   objectDeepMerge({ x: 1 }, { x: null }) -> { x: null }
  *   objectDeepMerge({ f: () => 1 }, { f: () => 2 }) -> second f replaces first
@@ -107,7 +112,7 @@ function mergeSource(target: any, source: any, excludeKeys: Set<string>): void {
  * - exclude 키는 마지막 인자에 _excludeKeys 배열로 전달해야 하며,
  *   첫 번째 소스(초기값)에는 제외 규칙이 적용되지 않습니다(초기값을 보존하도록 설계).
  *
- * @param {...any[]} values - 병합할 값들. 마지막에 {_excludeKeys: string[]} 옵션을 넣을 수 있음.
+ * @param {...any[]} values - 병합할 값들. 마지막에 {_excludeKeys: string[], _arrays: 'merge' | 'replace'} 옵션을 넣을 수 있음.
  * @returns {object} 병합된 새 객체
  */
 export function objectDeepMerge(...values: any[]): any {
@@ -116,10 +121,14 @@ export function objectDeepMerge(...values: any[]): any {
   }
 
   let excludeKeys = new Set<string>();
+  let replaceArrays = false;
   let sources = values; 
   const last = values[values.length - 1];
-  if (isMergeObject(last) && hasOwn(last, "_excludeKeys") && isArray(last._excludeKeys)) {
-    excludeKeys = new Set<string>(last._excludeKeys.map(String));
+  const hasExcludeKeys = isPlainObject(last) && hasOwn(last, "_excludeKeys") && isArray(last._excludeKeys);
+  const hasArrayMode = isPlainObject(last) && hasOwn(last, "_arrays") && (last._arrays === "replace" || last._arrays === "merge");
+  if (hasExcludeKeys || hasArrayMode) {
+    if (hasExcludeKeys) excludeKeys = new Set<string>((last._excludeKeys as unknown[]).map(String));
+    replaceArrays = hasArrayMode && last._arrays === "replace";
     sources = values.slice(0, -1);
   }
   
@@ -127,8 +136,8 @@ export function objectDeepMerge(...values: any[]): any {
 
   for (let index = 0; index < sources.length; index++) {
     const value = sources[index];
-    if (isArray(value) || isMergeObject(value)) {
-      mergeSource(result, value, index === 0 ? new Set<string>() : excludeKeys);
+    if (isArray(value) || isPlainObject(value)) {
+      mergeSource(result, value, index === 0 ? new Set<string>() : excludeKeys, replaceArrays);
     }
   }
 
@@ -136,7 +145,7 @@ export function objectDeepMerge(...values: any[]): any {
 }
 
 
-/** 배열들을 깊게 복사하여 합칩니다. 원시 값은 중복 제거하고 NaN·객체 요소는 보존합니다. */
+/** 배열들을 깊게 복사하여 합칩니다. 원시 값은 중복 제거하고 NaN·객체 요소는 보존합니다. 일반 객체의 __proto__·constructor·prototype은 제외합니다. */
 export function arrayDeepMerge(...values: any[]): any {
   if (values.length < 1) {
     return values;

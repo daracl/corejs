@@ -1,4 +1,6 @@
-import { isArray, isBlank, isString } from "../../utils";
+import { isArray } from "../../utils/isArray";
+import { isBlank } from "../../utils/isBlank";
+import { isString } from "../../utils/isString";
 
 
 type ElementType = Element | string | NodeList | Document | Element[]| null | undefined;
@@ -136,8 +138,9 @@ function insertAdjacentHTML(elements: Node[], insertPosition: InsertPosition, re
       (el as Element).insertAdjacentHTML(insertPosition, renderElements);
     });
   } else {
-    elements.forEach((el) => {
-      (el as Element).insertAdjacentElement(insertPosition, renderElements);
+    // 같은 노드를 여러 대상에 삽입하면 마지막 대상으로 이동하므로 두 번째부터는 복제합니다.
+    elements.forEach((el, index) => {
+      (el as Element).insertAdjacentElement(insertPosition, index === 0 ? renderElements : (renderElements.cloneNode(true) as Element));
     });
   }
 }
