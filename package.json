@@ -95,6 +95,8 @@
     "verify": "node scripts/harness.mjs verify",
     "test:scripts": "node --test scripts/*.test.mjs",
     "test:package": "node scripts/package-smoke.mjs",
+    "clean:results": "node scripts/clean-results.mjs",
+    "clean:results:all": "node scripts/clean-results.mjs --all",
     "audit:security": "npm audit --omit=dev",
     "audit:security:all": "npm audit"
   },

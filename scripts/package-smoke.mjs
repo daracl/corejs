@@ -4,10 +4,13 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 
 import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { autoCleanResults } from './clean-results.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const npm = process.env.npm_execpath || join(dirname(process.execPath), 'node_modules/npm/bin/npm-cli.js');
 if (!existsSync(npm)) throw new Error('npm CLI에서 실행하세요: npm run test:package');
+// 이전 실행의 오래된 산출물을 정리한다(기본 7일, DARACL_RESULTS_RETENTION_DAYS=0 이면 끔)
+autoCleanResults();
 mkdirSync(join(root, 'test-results'), { recursive: true });
 const directory = mkdtempSync(join(root, 'test-results/package-'));
 const env = { ...process.env, PATH: `${dirname(process.execPath)}${process.platform === 'win32' ? ';' : ':'}${process.env.PATH ?? ''}` };

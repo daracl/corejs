@@ -63,6 +63,7 @@ npm ci
 npm test                          # Jest (jsdom)
 node scripts/harness.mjs verify   # 타입·테스트·SCSS·번들·선언·트리셰이킹 검증
 npm run build                     # dist 생성
+npm run clean:results             # 7일이 지난 검증 산출물(test-results) 정리
 ```
 
 작업 지침은 [AGENTS.md](./AGENTS.md), 검증 도구 사용법은 [docs/HARNESS.md](./docs/HARNESS.md)를 참고하세요.

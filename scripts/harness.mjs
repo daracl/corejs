@@ -5,6 +5,7 @@ import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSyn
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { staleStyles } from './build-styles.mjs';
+import { autoCleanResults } from './clean-results.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(join(root, 'package.json'));
@@ -33,6 +34,8 @@ function walk(directory) {
 
 // 빌드 도구가 기존 링크를 따라 작업 트리 밖에 쓰거나 지우지 못하게 한다.
 function artifactDirectory() {
+  // 산출물이 계속 쌓이지 않도록 오래된 것을 먼저 정리한다(기본 7일, DARACL_RESULTS_RETENTION_DAYS=0 이면 끔)
+  autoCleanResults();
   let current = root;
   for (const part of ['test-results', 'harness']) {
     current = join(current, part);

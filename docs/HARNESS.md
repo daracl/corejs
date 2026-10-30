@@ -32,12 +32,41 @@ node scripts/harness.mjs test test/ajax/options.test.ts
 node scripts/harness.mjs build
 node scripts/harness.mjs verify
 node scripts/harness.mjs prune --keep=5
+npm run clean:results
 node --test scripts/harness.test.mjs
 npm run test:scripts
 npm run test:package
 ```
 
 `verify`는 점검 → 타입 검사 → 전체 Jest → 네 가지 Vite 빌드 → 선언 생성 → 최소 소비자 ESM 번들 검증 순서로 진행하며 실패하면 중단한다. 오류는 종료 코드 1, 경고는 보고하고 계속한다. SCSS 훅은 편집과 무관한 파일·잘못된 JSON 입력에서는 종료 코드 0, 컴파일 오류에서는 2를 반환한다.
+
+## 산출물(test-results) 정리
+
+`build`·`verify`·`test:package`는 `test-results/`에 산출물 폴더를 만든다(`test-results/`는 Git 추적 대상이 아니며 모두 다시 만들 수 있다). 쌓이지 않도록 다음 정리를 제공한다.
+
+| 방법 | 동작 |
+| --- | --- |
+| 자동 정리 | `build`·`verify`·`test:package`가 시작할 때 **7일**이 지난 항목을 삭제하고 정리한 개수·용량을 출력한다. `DARACL_RESULTS_RETENTION_DAYS=14`로 기간을 바꾸고 `0` 또는 `off`로 끈다. 정리에 실패해도 빌드·검증은 계속한다. |
+| `npm run clean:results` | 7일이 지난 항목 삭제. `node scripts/clean-results.mjs --days=N`으로 기간 지정 |
+| `npm run clean:results:all` | 전체 삭제(`--all`). `--all`과 `--days`는 함께 쓸 수 없다 |
+| `node scripts/clean-results.mjs --dry-run` | 삭제하지 않고 대상과 용량만 출력(`--days`, `--all`과 조합 가능) |
+| `node scripts/harness.mjs prune [--keep=N]` | `harness/run-*`만 최근 N개(기본 5개) 남기고 삭제 |
+
+판단 기준은 `test-results/` 바로 아래 항목의 수정 시각이며, 폴더는 통째로 삭제한다. 링크는 따라가지 않고 링크만 지운다. 개발 API가 쓰는 `test-results/uploads`는 서버가 실행 중일 수 있고 자체 정리(24시간)가 있어 항상 유지한다.
+
+### 정기 실행(선택)
+
+빌드를 오래 하지 않아도 주기적으로 비우려면 운영체제 스케줄러에 등록한다. 저장소 경로를 실제 경로로 바꾼다.
+
+```powershell
+# Windows: 매주 월요일 09:00
+schtasks /Create /SC WEEKLY /D MON /ST 09:00 /TN "corejs-clean-results" /TR "node F:\path\to\corejs\scripts\clean-results.mjs"
+```
+
+```sh
+# macOS/Linux crontab
+0 9 * * 1 cd /path/to/corejs && node scripts/clean-results.mjs
+```
 
 `build`와 `verify`는 실행할 때마다 `test-results/harness/run-*`에 산출물 폴더를 새로 만들고 자동으로 지우지 않는다(`test-results/`는 Git 추적 대상이 아니다). `prune [--keep=N]`은 가장 최근 N개(기본 5개)를 남기고 오래된 `run-*` 폴더만 삭제하며, 링크이거나 `run-*` 형식이 아닌 항목은 건드리지 않는다.
 
