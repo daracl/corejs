@@ -52,7 +52,7 @@ npm run test:package
 | `node scripts/clean-results.mjs --dry-run` | 삭제하지 않고 대상과 용량만 출력(`--days`, `--all`과 조합 가능) |
 | `node scripts/harness.mjs prune [--keep=N]` | `harness/run-*`만 최근 N개(기본 5개) 남기고 삭제 |
 
-판단 기준은 `test-results/` 바로 아래 항목의 수정 시각이며, 폴더는 통째로 삭제한다. 링크는 따라가지 않고 링크만 지운다. 개발 API가 쓰는 `test-results/uploads`는 서버가 실행 중일 수 있고 자체 정리(24시간)가 있어 항상 유지한다.
+판단 기준은 `test-results/` 바로 아래 항목의 수정 시각이며, 폴더는 통째로 삭제한다. 링크는 따라가지 않고 링크만 지운다. 개발 API가 쓰는 `test-results/uploads`는 서버가 실행 중일 수 있고 자체 정리(24시간)가 있어 항상 유지한다. docs가 근거로 인용하는 일회성 기록(`security-*`, `build-security.log`, `utils-*.log`, `reporter-fix.log`, `build-performance-*`, `grid-core-integration`)도 같은 시점의 결과를 다시 만들 수 없어 `--all`에서도 유지하며, 필요하면 직접 삭제한다. 한 항목의 삭제가 실패하면(다른 프로그램이 잡고 있는 파일 등) 건너뛰고 나머지를 계속 정리한 뒤 건너뛴 항목을 보고한다(CLI는 종료 코드 1, 자동 정리는 경고만).
 
 ### 정기 실행(선택)
 

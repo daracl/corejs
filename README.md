@@ -17,7 +17,7 @@ npm install @daracl/core
 
 ```ts
 import { Ajax, Loading, AjaxError } from "@daracl/core";
-import "@daracl/core/dist/daracl.core.min.css"; // Loading 스타일
+import "@daracl/core/dist/daracl.core.min.css"; // 선택: Loading 은 인라인 스타일로 표시되어 CSS 없이도 동작합니다
 
 const ajax = Ajax.create({ baseUrl: "/api", enableDefaultLoader: true });
 

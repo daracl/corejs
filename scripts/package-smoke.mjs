@@ -48,10 +48,10 @@ const consumer = join(directory, 'consumer');
 mkdirSync(consumer);
 writeFileSync(join(consumer, 'package.json'), JSON.stringify({ private: true, type: 'module' }));
 run([npm, 'install', '--ignore-scripts', '--no-audit', '--no-fund', '--cache', join(root, 'test-results/npm-cache'), join(directory, manifest.filename)], consumer);
-// 패키지에 포함된 style/*.css 가 Loading 스타일을 담고 있어야 한다(낡은 생성물 배포 방지)
+// 패키지에 style/*.css 와 소스맵 참조가 포함돼야 한다(Loading 은 인라인 스타일이라 내용은 비어 있다)
 for (const name of ['daracl.css', 'daracl.min.css']) {
   const css = readFileSync(join(consumer, 'node_modules/@daracl/core/style', name), 'utf8');
-  assert.ok(css.includes('.daracl-cl') && css.includes('--daracl-loading-backdrop'), `style/${name} 에 Loading 스타일이 없습니다.`);
+  assert.ok(css.includes(`sourceMappingURL=${name}.map`), `style/${name} 이 올바르게 생성되지 않았습니다.`);
 }
 for (const mode of ['module', 'commonjs']) {
   const load = mode === 'module' ? "import * as core from '@daracl/core';" : "const core = require('@daracl/core');";

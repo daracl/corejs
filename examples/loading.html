@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Daracl Loading 예제</title>
+    <!-- 먼저 `npm run build` 로 dist 를 만든 뒤 이 파일을 브라우저로 엽니다. -->
+    <!-- CSS 파일을 따로 불러오지 않습니다. Loading 은 인라인 스타일과 SVG 스피너로 표시됩니다. -->
+    <!-- ui-style 의 theme-vars.css 가 있으면 --dui-* 색을 쓰고, 없으면 같은 값의 기본색으로 표시합니다. -->
+    <script src="../dist/daracl.core.min.umd.js"></script>
+    <style>
+      body { margin: 0; padding: 16px; font: 14px/1.5 system-ui, sans-serif; background: #fff; color: #222; }
+      [data-daracl-theme="dark"] body { background: #1d1e1f; color: #cfd3dc; }
+      h1 { font-size: 18px; margin: 0 0 12px; }
+      .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+      .card { border: 1px solid #d9dde3; border-radius: 8px; padding: 12px; }
+      [data-daracl-theme="dark"] .card { border-color: #4c4d4f; }
+      .card h2 { font-size: 14px; margin: 0 0 8px; }
+      .area { height: 200px; margin-top: 8px; border: 1px dashed #b9bdc1; border-radius: 6px; padding: 8px; }
+      button { padding: 4px 12px; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <h1>Loading 예제</h1>
+    <div class="bar">
+      <span>페이지 테마(<code>data-daracl-theme</code>):</span>
+      <button type="button" data-theme="">auto(OS)</button>
+      <button type="button" data-theme="light">light</button>
+      <button type="button" data-theme="dark">dark</button>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>기본</h2>
+        <button type="button" onclick="show('#a1')">보기</button>
+        <button type="button" onclick="Daracl.loading.destroy('#a1')">숨기기</button>
+        <div id="a1" class="area">기본 로딩</div>
+      </div>
+
+      <div class="card">
+        <h2>내용 + 경과 시간</h2>
+        <button type="button" onclick="show('#a2', { content: '<b>데이터</b>를 불러오는 중...', enableTime: true })">보기</button>
+        <button type="button" onclick="Daracl.loading.destroy('#a2')">숨기기</button>
+        <div id="a2" class="area">content / enableTime</div>
+      </div>
+
+      <div class="card">
+        <h2>3초 후 자동 숨김</h2>
+        <button type="button" onclick="show('#a3', { timeout: 3000, content: '3초 뒤 사라집니다.' })">보기</button>
+        <div id="a3" class="area">timeout</div>
+      </div>
+
+      <div class="card">
+        <h2>취소 버튼</h2>
+        <button type="button" onclick="show('#a4', { enableCancelButton: true, content: '취소를 눌러 보세요.', callback: () => { log('취소 콜백 호출'); return true; } })">보기</button>
+        <div id="a4" class="area">enableCancelButton</div>
+      </div>
+
+      <div class="card">
+        <h2>테마 고정(dark)</h2>
+        <button type="button" onclick="show('#a5', { theme: 'dark', content: '페이지 테마와 무관하게 dark' })">보기</button>
+        <button type="button" onclick="Daracl.loading.destroy('#a5')">숨기기</button>
+        <div id="a5" class="area">theme: dark</div>
+      </div>
+
+      <div class="card">
+        <h2>테마 고정(light)</h2>
+        <button type="button" onclick="show('#a6', { theme: 'light', content: '페이지 테마와 무관하게 light' })">보기</button>
+        <button type="button" onclick="Daracl.loading.destroy('#a6')">숨기기</button>
+        <div id="a6" class="area">theme: light</div>
+      </div>
+
+      <div class="card">
+        <h2>같은 영역 공유 + 요청 수</h2>
+        <button type="button" onclick="addRequest()">요청 추가</button>
+        <button type="button" onclick="removeRequest()">요청 완료</button>
+        <div id="a7" class="area">enableRequestCount</div>
+      </div>
+
+      <div class="card">
+        <h2>사용자 이미지</h2>
+        <button type="button" onclick="show('#a8', { loadingImg: 'data:image/svg+xml;utf8,' + encodeURIComponent('&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;48&quot; height=&quot;48&quot;&gt;&lt;circle cx=&quot;24&quot; cy=&quot;24&quot; r=&quot;18&quot; fill=&quot;none&quot; stroke=&quot;#e11d48&quot; stroke-width=&quot;6&quot; stroke-dasharray=&quot;60 60&quot;&gt;&lt;animateTransform attributeName=&quot;transform&quot; type=&quot;rotate&quot; from=&quot;0 24 24&quot; to=&quot;360 24 24&quot; dur=&quot;1s&quot; repeatCount=&quot;indefinite&quot;/&gt;&lt;/circle&gt;&lt;/svg&gt;') })">보기</button>
+        <button type="button" onclick="Daracl.loading.destroy('#a8')">숨기기</button>
+        <div id="a8" class="area">loadingImg</div>
+      </div>
+    </div>
+
+    <pre id="log" style="margin-top: 16px; min-height: 2em"></pre>
+
+    <script>
+      function log(message) {
+        document.getElementById("log").textContent += message + "\n";
+      }
+
+      // 이미 떠 있는 로딩이 있으면 새로 만들지 않고 유지한다
+      function show(selector, options) {
+        Daracl.loading.create(selector, options);
+      }
+
+      var requests = [];
+      function addRequest() {
+        var loading = Daracl.loading.create("#a7", { enableRequestCount: true, requestCount: 1 });
+        requests.push(loading);
+        log("요청 추가: " + requests.length + "개 진행 중");
+      }
+      function removeRequest() {
+        var loading = requests.pop();
+        if (loading) loading.hide();
+        log("요청 완료: " + requests.length + "개 진행 중");
+      }
+
+      document.querySelectorAll("[data-theme]").forEach(function (button) {
+        button.addEventListener("click", function () {
+          var theme = button.getAttribute("data-theme");
+          if (theme) document.documentElement.setAttribute("data-daracl-theme", theme);
+          else document.documentElement.removeAttribute("data-daracl-theme");
+        });
+      });
+    </script>
+  </body>
+</html>

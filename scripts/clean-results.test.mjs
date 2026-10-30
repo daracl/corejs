@@ -65,6 +65,25 @@ test('--all 은 최근 항목까지 지우되 uploads 는 유지한다', () => {
   } finally { cleanup(); }
 });
 
+test('근거 기록(audit JSON, 성능·통합 로그)은 기간과 --all 모두에서 유지한다', () => {
+  const { project, base, cleanup } = fixture();
+  try {
+    const names = ['security-audit.json', 'build-security.log', 'utils-build.log', 'reporter-fix.log', 'build-performance-abc123', 'grid-core-integration'];
+    for (const name of names) {
+      const path = join(base, name);
+      if (name.includes('.')) writeFileSync(path, 'e'); else { mkdirSync(path); writeFileSync(join(path, 'log.txt'), 'e'); }
+      const time = new Date(Date.now() - 90 * DAY);
+      utimesSync(path, time, time);
+    }
+    for (const options of [{ days: 7 }, { all: true }]) {
+      const result = cleanResults({ projectRoot: project, ...options });
+      assert.deepEqual(result.failed, []);
+      for (const name of names) assert.equal(existsSync(join(base, name)), true, name);
+      assert.equal(result.kept.filter(item => item.reason === 'evidence').length, names.length);
+    }
+  } finally { cleanup(); }
+});
+
 test('잘못된 days 를 거부하고 test-results 가 없으면 아무 일도 하지 않는다', () => {
   const { project, cleanup } = fixture();
   try {
