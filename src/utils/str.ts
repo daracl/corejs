@@ -1,6 +1,7 @@
 import { isBlank } from "./isBlank";
 import { isEmpty } from "./isEmpty";
 import { isString } from "./isString";
+import { escapeRegExp, maxRegexTextLength } from "./regex";
 
 const xssFilter = {
   "&": "&amp;",
@@ -15,6 +16,7 @@ const charsToReplace = {
   "<": "&lt;",
   ">": "&gt;",
   '"': "&#34;",
+  "'": "&#39;",
 } as any;
 
 /**
@@ -69,10 +71,11 @@ export function matchCount(str: string, matchString: string): number {
 
   let re: RegExp;
   try {
-    re = new RegExp(matchString, "ig");
+    // 역추적 위험이 있거나 정규식을 적용하기에 너무 긴 문자열은 리터럴로 검색합니다.
+    re = new RegExp(str.length <= maxRegexTextLength(matchString) ? matchString : escapeRegExp(matchString), "ig");
   } catch {
     // 잘못된 정규식 문자열은 리터럴로 검색합니다.
-    re = new RegExp(matchString.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "ig");
+    re = new RegExp(escapeRegExp(matchString), "ig");
   }
   const resultArray = str.match(re);
   return resultArray == null ? 0 : resultArray.length;
@@ -141,7 +144,7 @@ export function rightPadClamp(str: any, len: number, ch = "0"): string {
 }
 
 /**
- * html escape
+ * html escape. & < > " ' 를 이스케이프하므로 작은따옴표·큰따옴표 속성 안에도 안전합니다.
  * <div>asdfa</div> -> &lt;div&gt;test&lt;/div&gt;
  * @param {string} html
  * @returns {string}
@@ -151,7 +154,7 @@ export function escapeHTML(html: string): string {
     return charsToReplace[tag] || tag;
   };
 
-  return html.replace(/[&<>"]/g, fn);
+  return html.replace(/[&<>"']/g, fn);
 }
 
 /**
@@ -220,7 +223,8 @@ export function lowerCase(str: string): string {
 function pad(orginStr: any, size: number, ch: string, type: "l" | "r" = "l", clamp: boolean = false): string {
   let str = "";
 
-  if (isEmpty(orginStr)) {
+  // 공백만 있는 문자열은 값으로 보고 유지한다(null·undefined·빈 배열 등만 빈 값으로 처리)
+  if (isEmpty(orginStr) && !(isString(orginStr) && orginStr.length > 0)) {
     str = "";
   }else{
     str = isString(orginStr) ? orginStr : `${orginStr}`;

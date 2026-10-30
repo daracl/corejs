@@ -18,7 +18,11 @@ export function insertToArray<T>(targetArray: T[], values: T | T[], isBefore = f
   if (rowIndex === undefined) {
     if (isBefore) targetArray.unshift(...items);
     else targetArray.push(...items);
-  } else targetArray.splice(isBefore ? rowIndex - 1 : rowIndex, 0, ...items);
+  } else {
+    // 범위를 벗어나거나 숫자가 아닌 위치는 배열 범위로 보정한다(음수가 끝에서부터 계산되지 않도록)
+    const position = Number.isFinite(rowIndex) ? Math.floor(isBefore ? rowIndex - 1 : rowIndex) : targetArray.length;
+    targetArray.splice(Math.min(Math.max(position, 0), targetArray.length), 0, ...items);
+  }
   if (Number.isFinite(limit) && targetArray.length > Math.max(0, limit)) {
     targetArray.splice(0, targetArray.length - Math.max(0, Math.floor(limit)));
   }

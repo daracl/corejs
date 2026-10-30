@@ -1,4 +1,5 @@
 import {Ajax} from "./ajax/Ajax";
+import {AjaxError} from "./ajax/AjaxError";
 import * as utils from "./utils";
 import {Loading} from "./Loading";
 import * as dom from "./common/dom";
@@ -17,6 +18,7 @@ if (typeof window !== "undefined") {
   window.Daracl = window.Daracl || {};
   window.Daracl.VERSION = `${APP_VERSION}`;
   window.Daracl.ajax=Ajax;
+  window.Daracl.AjaxError=AjaxError;
   window.Daracl.utils=utils;
   window.Daracl.loading=Loading;
   

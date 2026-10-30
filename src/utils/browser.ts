@@ -23,10 +23,13 @@ export function downloadUrl(url: string, fileName: string): void {
   try { link.click(); } finally { link.remove(); }
 }
 
-/** 텍스트를 파일로 다운로드하고 임시 object URL을 해제합니다. 인자 순서는 fileName, text입니다. */
+/** 다운로드 시작 전에 URL 이 해제되지 않도록 object URL 해제를 미루는 시간(ms)입니다. */
+const REVOKE_DELAY_MS = 10000;
+
+/** 텍스트를 파일로 다운로드하고 일정 시간 뒤 임시 object URL을 해제합니다. 인자 순서는 fileName, text입니다. */
 export function downloadText(fileName: string, text: string, type = "application/json"): void {
   const url = URL.createObjectURL(new Blob([text], { type }));
-  try { downloadUrl(url, fileName); } finally { setTimeout(() => URL.revokeObjectURL(url), 0); }
+  try { downloadUrl(url, fileName); } finally { setTimeout(() => URL.revokeObjectURL(url), REVOKE_DELAY_MS); }
 }
 
 /** SVG 문자열을 data URL로 변환합니다. */

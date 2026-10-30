@@ -37,7 +37,8 @@ export function eventKeyCode (e: Event): number | undefined {
  * @returns {boolean}
  */
 export function isShiftKey(evt: Event): boolean {
-  return (evt as KeyboardEvent).shiftKey;
+  // 키보드·마우스가 아닌 이벤트에는 shiftKey 가 없으므로 항상 boolean 으로 반환한다
+  return !!(evt as KeyboardEvent).shiftKey;
 }
 
 /**
@@ -47,7 +48,7 @@ export function isShiftKey(evt: Event): boolean {
  * @returns {boolean}
  */
 export function isCtrlKey(evt: Event): boolean {
-  return (evt as KeyboardEvent).ctrlKey;
+  return !!(evt as KeyboardEvent).ctrlKey;
 }
 
 /**
@@ -66,7 +67,7 @@ export function isSpacebar(evt: Event): boolean {
 }
 
 /**
- * spacebar check
+ * enter key check
  *
  * @param {Event} evt event
  * @returns {boolean}

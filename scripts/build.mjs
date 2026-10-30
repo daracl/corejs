@@ -8,6 +8,7 @@ import esConfig from '../vite.config.mjs';
 import umdConfig from '../vite.config.umd.mjs';
 import utilsConfig from '../vite.config.utils.mjs';
 import { buildFiles } from './build-files.mjs';
+import { writeStyles } from './build-styles.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
@@ -65,6 +66,8 @@ export async function buildProject() {
   const startedAt = performance.now();
   buildFiles('clean-dist');
   buildFiles('dts');
+  // style/ 의 배포용 CSS 는 SCSS 에서 생성한다(직접 수정하지 않음)
+  writeStyles();
   // 선언과 번들은 파일명이 겹치지 않습니다. 모든 작업이 끝난 뒤에만 병합합니다.
   await buildOutputs();
   buildFiles('unmin');

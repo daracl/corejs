@@ -16,7 +16,7 @@
 | `scripts/harness.test.mjs` | CLI 인자·경로·Node 재사용·훅 성공/실패 검증 |
 | `scripts/build-files.mjs`, `scripts/build-files.test.mjs` | 배포 파일 복사·중간 출력 정리와 회귀 검증 |
 | `scripts/build.mjs` | Vite API를 재사용하고 타입 선언을 병행하는 전체 배포 빌드 |
-| `scripts/package-smoke.mjs` | 실제 npm pack과 별도 소비자 ESM/CJS import 검증 |
+| `scripts/package-smoke.mjs` | 실제 npm pack과 별도 소비자 ESM/CJS import, 선언 파일 TypeScript 컴파일(bundler·node16·node10) 검증 |
 
 ## 실행
 
@@ -31,12 +31,15 @@ node scripts/harness.mjs test
 node scripts/harness.mjs test test/ajax/options.test.ts
 node scripts/harness.mjs build
 node scripts/harness.mjs verify
+node scripts/harness.mjs prune --keep=5
 node --test scripts/harness.test.mjs
 npm run test:scripts
 npm run test:package
 ```
 
 `verify`는 점검 → 타입 검사 → 전체 Jest → 네 가지 Vite 빌드 → 선언 생성 → 최소 소비자 ESM 번들 검증 순서로 진행하며 실패하면 중단한다. 오류는 종료 코드 1, 경고는 보고하고 계속한다. SCSS 훅은 편집과 무관한 파일·잘못된 JSON 입력에서는 종료 코드 0, 컴파일 오류에서는 2를 반환한다.
+
+`build`와 `verify`는 실행할 때마다 `test-results/harness/run-*`에 산출물 폴더를 새로 만들고 자동으로 지우지 않는다(`test-results/`는 Git 추적 대상이 아니다). `prune [--keep=N]`은 가장 최근 N개(기본 5개)를 남기고 오래된 `run-*` 폴더만 삭제하며, 링크이거나 `run-*` 형식이 아닌 항목은 건드리지 않는다.
 
 `npm run verify`로 같은 검증을 실행할 수 있다. `test:package`는 별도 검증으로, prepack을 실행해 dist를 다시 생성하고 test-results에 패키지와 소비자 프로젝트를 만든다. publish는 실행하지 않는다.
 

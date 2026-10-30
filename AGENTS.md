@@ -37,8 +37,9 @@
 - SCSS: `node scripts/harness.mjs scss`
 - 빌드·선언 생성·ESM 트리셰이킹: `node scripts/harness.mjs build`
 - 전체 검증: `node scripts/harness.mjs verify`
+- 하네스 산출물 정리: `node scripts/harness.mjs prune [--keep=N]`
 
-하네스는 현재 Node 실행 파일로 설치된 도구를 직접 호출한다. 의존성이 없으면 설치하지 않고 실패한다. 일반 `npm run build`는 dist를 정리하므로 검증에는 하네스를 사용한다. 산출물은 `test-results/harness/run-*`에 남으며 기존 결과는 삭제하지 않는다. 이는 배포 패키징 검증을 대신하지 않는다.
+하네스는 현재 Node 실행 파일로 설치된 도구를 직접 호출한다. 의존성이 없으면 설치하지 않고 실패한다. 일반 `npm run build`는 dist를 정리하므로 검증에는 하네스를 사용한다. 산출물은 `test-results/harness/run-*`에 남으며 자동으로 삭제하지 않는다. 용량이 커지면 `node scripts/harness.mjs prune [--keep=N]`으로 오래된 `run-*`만 명시적으로 정리한다(기본 최근 5개 유지, 다른 폴더는 건드리지 않음). 이는 배포 패키징 검증을 대신하지 않는다.
 
 Jest는 jsdom + ts-jest를 사용한다. `tsconfig.test.json`을 유지한다. Ajax 통합 진입점이 개별 테스트를 import하므로 전체 실행에서 `test/ajax/ajax-.*.test.ts` 중복 수집을 제외하고 직렬 실행한다. 외부 네트워크 대신 mock 또는 로컬 테스트 서버를 사용하며 전역 mock·타이머·DOM을 정리한다. SCSS 검증은 Jest jsdom 안이 아닌 별도 Node 프로세스에서 수행한다.
 

@@ -182,7 +182,7 @@ describe("진행 중 Ajax 요청과 공유 Loading", () => {
     const b = new Loading("#target", { requestCount: 1 });
     a.hide();
     expect(counter()).toBeUndefined();
-    expect(jest.getTimerCount()).toBe(1);
+    expect(jest.getTimerCount()).toBe(0);
     b.hide();
     expect(jest.getTimerCount()).toBe(0);
     const next = new Loading("#target", { enableRequestCount: true, requestCount: 3 });

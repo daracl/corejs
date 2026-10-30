@@ -1,14 +1,17 @@
 export interface LoadingOptions {
+  /** 기본값 auto는 시스템 설정 또는 상위 .dark/.light, data-theme 속성을 따릅니다. 공유 화면은 최초 생성자의 테마를 사용합니다. */
+  theme?: "auto" | "light" | "dark";
   /**
    * 사라지는 시간(밀리초).
    * 지정하지 않으면 자동으로 사라지지 않습니다.
+   * 공유 화면에서도 이 인스턴스에만 적용되며 다른 참여자가 남아 있으면 화면을 유지합니다.
    *
    * @type {number|undefined}
    */
   timeout?: number;
 
   /**
-   * 시간 표시 여부. true이면 시간(또는 남은 시간)을 표시합니다.
+   * 시간 표시 여부. 공유 화면에서는 활성화한 참여자 중 가장 이른 시작부터 경과한 초를 표시합니다.
    *
    * @type {boolean|undefined}
    */
@@ -21,7 +24,8 @@ export interface LoadingOptions {
   requestCount?: number;
 
   /**
-   * 표시할 텍스트 내용.
+   * 표시할 HTML 내용. script·on* 속성처럼 위험한 요소는 제거하고 허용된 태그(b, i, span, p 등)만 표시합니다.
+   * 공유 화면에서는 현재 참여자 중 마지막으로 지정한 비어 있지 않은 내용을 표시합니다.
    *
    * @type {string|undefined}
    */
@@ -49,7 +53,7 @@ export interface LoadingOptions {
   opacity?: string;
 
   /**
-   * 로딩 이미지 경로 또는 base64 데이터 문자열.
+   * 로딩 이미지 경로 또는 data:image URL. 비어 있거나 javascript: 같은 안전하지 않은 URL이면 테마 색상의 CSS 스피너를 표시합니다.
    *
    * @type {string|undefined}
    */
@@ -64,6 +68,7 @@ export interface LoadingOptions {
 
   /**
    * 취소 버튼 표시 여부.
+   * 공유 화면에서는 참여자 중 하나라도 활성화하면 표시합니다.
    *
    * @type {boolean|undefined}
    */

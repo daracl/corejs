@@ -10,6 +10,8 @@ dist.zip
 !.yarn/plugins
 .pnp.*
 dist/*
+# api/ 의 선언 파일은 생성물이므로 추적하지 않는다
+api/**/*.d.ts
 docs/*
 !docs/PROJECT_REVIEW.md
 !docs/UTILS_MIGRATION.md

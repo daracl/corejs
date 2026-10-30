@@ -12,7 +12,7 @@
 | --- | --- |
 | 1. 외부 노출 축소 | Vite 개발·미리보기와 API listen을 127.0.0.1로 제한. API는 localhost/127.0.0.1의 4171·5173·3000·기본 HTTP 포트 출처만 허용하고, Origin 없는 Node 테스트 요청은 허용. 허용하지 않은 Origin은 변경 요청도 403으로 거부 |
 | 1. 업로드 제한 | 파일당 10MB, 요청당 파일 10개·필드 50개·필드당 64KB·전체 part 60개. Multer 제한 오류는 JSON 413, 예상하지 않은 파일 필드는 400, 잘못된 JSON은 400으로 처리. 실패 시 저장 파일 정리를 테스트로 확인 |
-| 2. 의존성 정리 | init·ink-docstrap·TSLint·사용하지 않는 ESLint 구성/타입/아이콘·PostCSS/Visualizer plugin·ts-loader 제거. Express를 devDependencies로 이동. 브라우저 dependencies에는 tslib만 유지 |
+| 2. 의존성 정리 | init·ink-docstrap·TSLint·사용하지 않는 ESLint 구성/타입/아이콘·PostCSS/Visualizer plugin·ts-loader 제거. Express를 devDependencies로 이동. 이후 tslib도 배포 산출물에 참조가 없어 devDependencies로 이동(런타임 dependencies 없음) |
 | 2. 복사 도구 교체 | cpx와 rimraf를 제거하고 scripts/build-files.mjs의 Node fs로 선언·비압축 파일·HTML 복사와 중간 디렉터리 정리를 수행. 출력 링크를 거부하고 production 파일 보존을 테스트 |
 | 3. 설정 전환 | Vite 설정 3개를 .mjs로 전환, import.meta.url로 경로 계산, Sass modern API 지정. 배너 plugin 대신 Rollup output.banner로 라이선스 배너 유지. package scripts·harness 참조 갱신 |
 | 4. 지원 버전 이관 | Vite 7.3.7, Rollup 4.65.1, Express 4.22.3, Multer 2.5.0, Jest/jsdom 환경 30.5.2, ts-jest 29.4.15로 이관. 호환 범위 내 전이 의존성도 다시 해결 |
@@ -104,7 +104,7 @@ Rollup은 audit가 high로 집계한 반면 연결된 유지관리자 권고는 
 
 - `init`, `ink-docstrap`, `tslint`, `tslint-config-prettier`: 실제 소스·설정·scripts에서 사용처를 찾지 못했다. 제거 우선 후보다.
 - `express`: api/의 테스트·개발 서버에서만 사용하므로 devDependencies 이동 후보다. 이는 API 서버 취약점의 수정 자체는 아니다.
-- `tslib`: importHelpers 설정과 관련될 수 있으므로 유지한 채 실제 배포 산출물의 외부 참조를 확인한다.
+- `tslib`: 배포 산출물(ES/CJS/UMD/utils)에 참조가 없음을 확인해 devDependencies로 이동했다. `importHelpers`는 타입 검사에만 영향을 주므로 개발 환경에는 필요하다.
 - `rollup-plugin-postcss`, `ts-loader`: 현재 Vite 설정에서 사용하지 않는다. 제거하면 CSS 최적화·Webpack 관련 오래된 전이 의존성을 줄일 수 있다.
 - `eslint-config-airbnb`, React 관련 lint 의존성 등도 실제 ESLint 설정이 사용하는지 확인하고 정리한다. 이름만 보고 일괄 제거하지 않는다.
 
@@ -121,12 +121,14 @@ Rollup은 audit가 high로 집계한 반면 연결된 유지관리자 권고는 
 
 ## 권장 진행 순서
 
-1. **외부 노출 축소:** Vite host를 127.0.0.1로 제한한다. api/index의 listen도 개발 용도에 맞게 loopback에 바인딩한다. 업로드 최대 파일 크기·필드 수·파일 수와 에러 처리·CORS 범위를 정한다.
-2. **불필요한 의존 제거·분리:** init·TSLint·ink-docstrap과 사용하지 않는 빌드 plugin을 정리하고 Express는 개발 의존으로 옮긴다. cpx의 copy-dts/copy-unmin/copy-html은 Node fs 스크립트로 대체한다.
-3. **최소 설정 변경:** Vite 설정만 .mjs로 전환하고 Sass modern API를 지정한다. 스크립트·하네스 참조도 갱신한다.
-4. **패치/지원 버전 이관:** Express/Multer와 전이 의존을 갱신한다. Vite 5는 현재 지원 대상이 아니므로 공식 이관 가이드를 따라 지원되는 버전으로 이동한다. audit가 제시한 Vite 8.3.5는 검토 후보이며 plugin·Node·ES/CJS·UMD 호환 검증 전 확정하지 않는다.
-5. **lockfile 일원화:** package-lock.json이 현재 .gitignore에 있고 scripts는 yarn을 호출한다. npm 또는 Yarn 한 가지로 결정한 뒤 해당 lockfile을 추적하고 동일 버전으로 CI 설치를 고정한다. 기존 node_modules/lockfile 불일치를 해소한 뒤 다시 audit한다.
-6. **회귀 검증:** 전체 Jest·타입·Sass·4가지 빌드·선언·트리셰이킹, 실제 npm pack 내용과 clean 소비자 ESM/CJS import, dev API upload/timeout을 확인한다. 전체/production audit를 모두 다시 실행한다.
+> 상태 갱신(2026-10-30): 아래는 점검 당시(0.0.6)의 계획이다. 각 항목 끝의 **상태**에 현재 반영 여부를 적었다. 의존성 취약점은 이번 갱신에서 `npm audit`을 다시 실행하지 않았으므로 아래 "재확인 명령"으로 확인한다.
+
+1. **외부 노출 축소:** Vite host를 127.0.0.1로 제한한다. api/index의 listen도 개발 용도에 맞게 loopback에 바인딩한다. 업로드 최대 파일 크기·필드 수·파일 수와 에러 처리·CORS 범위를 정한다. **상태(2026-10-30): 완료. Vite와 api 서버를 127.0.0.1에 바인드하고, 업로드 크기·파일 수·필드 수 제한, JSON 오류 응답, 출처 허용 목록 CORS를 적용했다. 개발 API는 항목 수 상한과 입력 검증, 오래된 업로드 정리를 추가했다.**
+2. **불필요한 의존 제거·분리:** init·TSLint·ink-docstrap과 사용하지 않는 빌드 plugin을 정리하고 Express는 개발 의존으로 옮긴다. cpx의 copy-dts/copy-unmin/copy-html은 Node fs 스크립트로 대체한다. **상태(2026-10-30): 완료. 해당 패키지를 제거했고 Express는 devDependencies다. cpx 대신 scripts/build-files.mjs를 쓴다. tslib도 devDependencies로 옮겨 런타임 dependencies가 없다.**
+3. **최소 설정 변경:** Vite 설정만 .mjs로 전환하고 Sass modern API를 지정한다. 스크립트·하네스 참조도 갱신한다. **상태(2026-10-30): 완료. Vite 설정은 .mjs이고 Sass는 modern API를 사용한다.**
+4. **패치/지원 버전 이관:** Express/Multer와 전이 의존을 갱신한다. Vite 5는 현재 지원 대상이 아니므로 공식 이관 가이드를 따라 지원되는 버전으로 이동한다. audit가 제시한 Vite 8.3.5는 검토 후보이며 plugin·Node·ES/CJS·UMD 호환 검증 전 확정하지 않는다. **상태(2026-10-30): 부분 확인. package.json은 Vite ~7.3.7, Express ^4.22.3, Multer ^2.5.0을 사용한다. 취약점 해소 여부는 npm audit으로 다시 확인해야 한다.**
+5. **lockfile 일원화:** package-lock.json이 현재 .gitignore에 있고 scripts는 yarn을 호출한다. npm 또는 Yarn 한 가지로 결정한 뒤 해당 lockfile을 추적하고 동일 버전으로 CI 설치를 고정한다. 기존 node_modules/lockfile 불일치를 해소한 뒤 다시 audit한다. **상태(2026-10-30): 완료. npm으로 일원화했고 package-lock.json을 추적하며 CI는 npm ci로 설치한다. package.json에 yarn 호출 스크립트는 없다.**
+6. **회귀 검증:** 전체 Jest·타입·Sass·4가지 빌드·선언·트리셰이킹, 실제 npm pack 내용과 clean 소비자 ESM/CJS import, dev API upload/timeout을 확인한다. 전체/production audit를 모두 다시 실행한다. **상태(2026-10-30): 완료. node scripts/harness.mjs verify, npm run test:scripts, npm run test:package로 검증한다(.github/workflows/verify.yml).**
 
 `npm audit fix --force`를 일괄 적용하지 않는다. 이번 audit는 Jest 25.1.0, ts-jest 25.5.1, cpx 1.2.1, ink-docstrap 0.5.4로 내리는 경로까지 제시했다. audit 점수를 낮추는 선택과 안전하고 유지 가능한 업그레이드는 다를 수 있다. overrides는 상위 패키지 호환성을 확인한 전이 의존에만 제한적으로 사용한다.
 

@@ -36,14 +36,16 @@
 
 ## 남은 점검 항목
 
-1. **깊은 병합의 순환 참조:** `objectDeepMerge`는 순환 객체에서 재귀가 끝나지 않는다. `deepCopy`는 처리하지만 병합의 순환 그래프 규칙은 별도 정의가 필요하다. 요청 옵션과 일반 데이터에는 순환 참조를 넣지 않는 것이 현재 전제다.
-2. **동일 컨테이너의 동시 Loading (후속 수정 완료):** 컨테이너별 활성 인스턴스를 추적해 화면을 공유하고 마지막 인스턴스 해제 시 닫는다. Ajax별 pendingRequests Map과 선택적 요청 수 표시를 추가했다. 로더의 명시적 timeout·destroy는 화면만 해제한다.
-3. **중첩 파일 업로드:** containsFile은 재귀 검사하지만 FormData 생성은 중첩 객체를 JSON 문자열로 바꾼다. 중첩 File/Blob 전송과 단일 File 입력은 별도 직렬화 규칙 및 서버 계약이 필요하다.
-4. **콜백 오류·응답 규칙:** 사용자 progress 콜백의 예외는 전역으로 전파될 수 있다. 잘못된 JSON도 현재 성공 응답의 `{error}` 데이터로 처리한다. 오류 계약 변경은 호환성 검토가 필요하다.
-5. **이벤트 수명:** 활성 매니저는 등록 노드를 보관하므로 컴포넌트 제거 시 off/offAll이 필요하다. once 이벤트 후 내부 등록의 즉시 삭제는 구현하지 않았다.
-6. **개발용 API:** 무제한 업로드 용량, 요청 헤더 반사, parseInt 기반 인덱스 허용, 프로세스 메모리 데이터 저장 구조가 남아 있다. 운영 서버용 검증·저장·제한 정책은 포함하지 않았다.
-7. **빌드·패키징:** yarn에 종속된 빌드 스크립트, 패키지 exports의 디렉터리 매핑, Node에서 ES .js를 직접 import하는 호환성, 불필요한 런타임 dependencies를 정리할 여지가 있다. Vite CJS API·Sass legacy API 경고도 남는다.
-8. **테스트 환경:** 기본 node/npm 실행은 nvm 활성 버전 미설정으로 실패했다. 설치된 Node v24.20.0 실행 파일을 직접 사용했다. node_modules에 jest-html-reporter가 없어 `--reporters=default`로 검증했다. 일반 jest는 Ajax 개별 파일과 통합 진입점을 모두 수집하므로 전체 검증에는 기존 test:all의 제외 패턴을 사용했다.
+갱신: 2026-10-30. 최초 점검 이후의 개선을 반영해 항목별 현재 상태를 적었다.
+
+1. **깊은 병합의 순환 참조 (해결):** `objectDeepMerge`는 소스 내부의 순환·공유 참조를 보존하며 병합한다. 작업 목록 방식이라 깊은 중첩에서도 재귀 한도에 걸리지 않는다.
+2. **동일 컨테이너의 동시 Loading (해결):** 컨테이너별 활성 인스턴스를 추적해 화면을 공유하고 마지막 인스턴스 해제 시 닫는다. Ajax별 pendingRequests Map과 선택적 요청 수 표시를 제공한다. 로더의 명시적 timeout·destroy는 화면만 해제한다. 옵션 값은 DOM API로 설정하고 `content`는 `sanitizeHtml`을 거쳐 표시한다.
+3. **파일 업로드 직렬화 (해결, 제한 있음):** 파일이 든 중첩 객체·객체 배열은 `key[child]` 형태의 multipart로 펼치고, 파일이 없는 중첩 객체는 JSON 문자열로 보낸다. 단일 File/Blob을 가공 없이 보내려면 `rawBody`를 사용한다. 서버가 기대하는 필드 이름·형식은 호출자가 맞춰야 한다.
+4. **콜백 오류·응답 규칙 (대부분 해결):** 성공 응답의 JSON 파싱 실패는 `type:"parse"`, `beforeRequest`·`beforeResponse` 예외는 `type:"callback"`인 `AjaxError`로 reject한다([AJAX_OPTIONS.md](./AJAX_OPTIONS.md)의 오류 처리). 남은 제한: `onUploadProgress`·`onDownloadProgress` 콜백의 예외는 XHR 이벤트 처리 중 발생하므로 전역 오류로 전파될 수 있다.
+5. **이벤트 수명 (개선, 제한 있음):** `EventManager`는 요소를 약한 참조로 보관하고 GC되면 순회 목록에서도 정리한다. `off("click")`은 네임스페이스 핸들러까지 제거하고 `off(".ns")`도 지원한다. 남은 제한: `once` 이벤트가 실행된 뒤에도 내부 등록 정보는 `off`/`offAll` 전까지 남는다.
+6. **개발용 API (개선, 운영용 아님):** 인덱스는 0 이상의 정수만 허용하고, PUT·POST 본문은 JSON 객체여야 하며, 메모리 항목은 1000개로 제한한다. 기본 업로드 폴더는 시작 시와 1시간마다 24시간이 지난 업로드를 정리한다. 남은 제한: `x-*` 요청 헤더 반사, 프로세스 메모리 저장, 운영 서버용 검증·저장·제한 정책은 포함하지 않는다.
+7. **빌드·패키징 (일부 해결):** tslib을 devDependencies로 옮겨 런타임 dependencies가 없다. `package.json`에는 yarn 호출 스크립트가 없다. `exports["./umd"]`는 import·require·default를 제공한다. 이번 갱신에서 다시 확인하지 않은 항목: `./dist/*`·`./style/*` 디렉터리 매핑, Node에서 ES .js를 직접 import하는 호환성, Vite CJS API·Sass legacy API 경고.
+8. **테스트 환경:** 기본 node/npm 실행은 nvm 활성 버전 미설정으로 실패했다. 설치된 Node v24.20.0 실행 파일을 직접 사용했다. node_modules에 jest-html-reporter가 없어 `--reporters=default`로 검증했다. 일반 jest는 Ajax 개별 파일과 통합 진입점을 모두 수집하므로 전체 검증에는 기존 test:all의 제외 패턴을 사용했다. 하네스 산출물은 `prune`으로 정리한다([HARNESS.md](./HARNESS.md)).
 
 ## 검증 방법
 

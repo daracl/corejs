@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -44,10 +45,35 @@ const consumer = join(directory, 'consumer');
 mkdirSync(consumer);
 writeFileSync(join(consumer, 'package.json'), JSON.stringify({ private: true, type: 'module' }));
 run([npm, 'install', '--ignore-scripts', '--no-audit', '--no-fund', '--cache', join(root, 'test-results/npm-cache'), join(directory, manifest.filename)], consumer);
+// 패키지에 포함된 style/*.css 가 Loading 스타일을 담고 있어야 한다(낡은 생성물 배포 방지)
+for (const name of ['daracl.css', 'daracl.min.css']) {
+  const css = readFileSync(join(consumer, 'node_modules/@daracl/core/style', name), 'utf8');
+  assert.ok(css.includes('.daracl-cl') && css.includes('--daracl-loading-backdrop'), `style/${name} 에 Loading 스타일이 없습니다.`);
+}
 for (const mode of ['module', 'commonjs']) {
   const load = mode === 'module' ? "import * as core from '@daracl/core';" : "const core = require('@daracl/core');";
   run(['--input-type=' + mode, '-e', `${load} const assert = ${mode === 'module' ? '(await import("node:assert/strict")).default' : 'require("node:assert/strict")'}; assert.equal(core.isString('ok'), true); assert.equal(core.isString(1), false); assert.equal(core.VERSION, ${JSON.stringify(pkg.version)}); assert.equal(typeof globalThis.Daracl, 'undefined');`], consumer);
+  // window 가 있는 환경(브라우저·번들러)에서 가져와도 window.Daracl 이 등록되지 않아야 한다(global.ts 가 sideEffects 로 제외되는 계약)
+  const withWindow = mode === 'module' ? "globalThis.window = {}; const core = await import('@daracl/core');" : "globalThis.window = {}; const core = require('@daracl/core');";
+  run(['--input-type=' + mode, '-e', `${withWindow} if (typeof core.isString !== 'function' || 'Daracl' in globalThis.window) throw new Error('ESM/CJS 진입점이 window.Daracl 을 등록했습니다.');`], consumer);
   const utilities = mode === 'module' ? "import * as utils from '@daracl/core/utils';" : "const utils = require('@daracl/core/utils');";
   run(['--input-type=' + mode, '-e', `${utilities} if (!utils.isString('ok') || 'Ajax' in utils || 'Loading' in utils) throw new Error('utils entry contract');`], consumer);
 }
-console.log(`패키징·별도 소비자 ESM/CJS 검증 통과: ${files.size}개 파일, ${directory}`);
+// 설치한 패키지의 선언 파일을 TypeScript 소비자로 컴파일한다(런타임 import 만으로는 선언 오류를 알 수 없다).
+// 루트 진입점의 유틸 재내보내기, @daracl/core/utils 서브패스, AjaxResponse 제네릭을 모듈 해석 방식별로 확인한다.
+const tsc = createRequire(join(root, 'package.json')).resolve('typescript/bin/tsc');
+mkdirSync(join(consumer, 'ts'));
+writeFileSync(join(consumer, 'ts/check.ts'), [
+  "import { Ajax, Loading, AjaxError, objectDeepMerge, debounce, isString, type AjaxResponse, type AjaxOptions } from '@daracl/core';",
+  "import { isString as isStringFromUtils } from '@daracl/core/utils';",
+  "const response: Promise<AjaxResponse<number[]>> = Ajax.create().get<number[]>('/x');",
+  "const merged: { a?: number; b?: number } = objectDeepMerge({ a: 1 }, { b: 2 });",
+  "const delayed = debounce<[number], unknown>((value: number) => value, 1);",
+  "const options: AjaxOptions = { rawBody: true };",
+  "export { response, merged, delayed, options, isString, isStringFromUtils, Loading, AjaxError };",
+].join('\n'));
+for (const [moduleResolution, module] of [['bundler', 'esnext'], ['node16', 'node16'], ['node10', 'commonjs']]) {
+  run([tsc, '--noEmit', '--strict', '--skipLibCheck', 'false', '--target', 'ES2020', '--lib', 'ES2022,DOM', '--module', module, '--moduleResolution', moduleResolution, 'ts/check.ts'], consumer);
+}
+
+console.log(`패키징·별도 소비자 ESM/CJS·TypeScript 선언 검증 통과: ${files.size}개 파일, ${directory}`);

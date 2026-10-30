@@ -1,4 +1,4 @@
 @echo off
-rem Licensed to the Apache Software Foundation (ASF) under one or more
+rem typedoc 문서를 생성합니다.
 
 npm run docs:gen

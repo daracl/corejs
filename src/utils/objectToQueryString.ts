@@ -9,9 +9,10 @@ import { isObject } from "./isObject";
 export function objectToQueryString(param: any): string {
   return Object.keys(param)
     .map((key) => {
-      if (param[key] !== undefined) {
-        const val = param[key];
-        return `${encodeURIComponent(key)}=${encodeURIComponent(isObject(val) ? JSON.stringify(val) : String(val))}`;
+      const val = param[key];
+      // undefined 와 같이 null 도 보내지 않는다
+      if (val !== undefined && val !== null) {
+        return `${encodeURIComponent(key)}=${encodeURIComponent(val instanceof Date && !isNaN(val.getTime()) ? val.toISOString() : isObject(val) ? JSON.stringify(val) : String(val))}`;
       }
     })
     .filter(Boolean)

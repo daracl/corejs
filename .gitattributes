@@ -1,2 +1,26 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# 텍스트 파일은 저장소와 작업 트리 모두 LF로 통일한다.
+# eol=lf 는 core.autocrlf(Windows Git 기본값 true)보다 우선하므로 체크아웃 결과가 운영체제·Git 설정에 따라 달라지지 않는다.
+* text=auto eol=lf
+
+# cmd.exe 는 LF 만 있는 배치 파일에서 라벨·goto 를 잘못 해석할 수 있어 배치 파일만 CRLF 를 유지한다.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 바이너리는 줄바꿈 변환과 diff 대상에서 제외한다.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.avif binary
+*.bmp binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.eot binary
+*.zip binary
+*.gz binary
+*.tgz binary
+*.pdf binary

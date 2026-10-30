@@ -1,9 +1,10 @@
 // ui-common-harness의 점검·검증 흐름을 corejs에 맞춘 실행기.
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
-import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { staleStyles } from './build-styles.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(join(root, 'package.json'));
@@ -42,6 +43,27 @@ function artifactDirectory() {
     } else mkdirSync(current);
   }
   return mkdtempSync(join(current, 'run-'));
+}
+
+// mkdtempSync('run-')가 만드는 산출물 폴더 이름입니다.
+const RUN_DIRECTORY = /^run-[A-Za-z0-9]{6}$/;
+const DEFAULT_KEEP = 5;
+
+/**
+ * 하네스 빌드 산출물(run-*) 중 최근 keep개를 남기고 나머지를 삭제하고, 삭제한 폴더 이름을 반환합니다.
+ * 자동으로 실행하지 않고 prune 명령으로만 호출합니다. 링크이거나 run-* 형식이 아닌 항목은 건드리지 않습니다.
+ */
+export function pruneArtifacts(base = join(root, 'test-results', 'harness'), keep = DEFAULT_KEEP) {
+  if (!Number.isInteger(keep) || keep < 1) throw new Error('--keep은 1 이상의 정수여야 합니다.');
+  if (!existsSync(base)) return [];
+  if (lstatSync(base).isSymbolicLink() || !lstatSync(base).isDirectory()) throw new Error(`산출물 경로는 실제 디렉터리여야 합니다: ${base}`);
+  const runs = readdirSync(base, { withFileTypes: true })
+    .filter(entry => entry.isDirectory() && RUN_DIRECTORY.test(entry.name))
+    .map(entry => ({ name: entry.name, time: statSync(join(base, entry.name)).mtimeMs }))
+    .sort((a, b) => b.time - a.time || (a.name < b.name ? 1 : -1));
+  const removed = runs.slice(keep);
+  for (const { name } of removed) rmSync(join(base, name), { recursive: true, force: true });
+  return removed.map(({ name }) => name);
 }
 
 function run(tool, args) {
@@ -128,6 +150,8 @@ function audit(json) {
     const result = compileStyles();
     for (const warning of result.warnings) add('warning', `Sass: ${warning.split('\n')[0]}`);
     add('info', `SCSS 컴파일 통과: ${result.entries.join(', ')}`);
+    const stale = staleStyles();
+    if (stale.length) add('warning', `style/ 생성 파일이 daracl.scss와 다릅니다 (npm run build로 갱신): ${stale.join(', ')}`);
   } catch (error) { add('error', `SCSS 검증 실패: ${error.message}`); }
   const report = { project: pkg?.name ?? 'corejs', sourceFiles: sources.length, findings,
     errors: findings.filter(item => item.level === 'error').length,
@@ -185,14 +209,20 @@ async function treeShake(directory) {
 async function main() {
   const [command = 'help', ...args] = process.argv.slice(2);
   if (command === 'help') {
-    console.log('node scripts/harness.mjs audit [--json] | typecheck | scss | test [test/파일.test.ts ...] | build | verify');
+    console.log('node scripts/harness.mjs audit [--json] | typecheck | scss | test [test/파일.test.ts ...] | build | verify | prune [--keep=N]');
     return;
   }
-  if (command !== 'test' && args.length && !(command === 'audit' && args.length === 1 && args[0] === '--json')) {
+  if (command !== 'test' && args.length && !(command === 'audit' && args.length === 1 && args[0] === '--json') && !(command === 'prune' && args.length === 1 && /^--keep=\d+$/.test(args[0]))) {
     throw new Error('지원하지 않는 인자입니다. help를 확인하세요.');
   }
   switch (command) {
     case 'audit': audit(args.includes('--json')); break;
+    case 'prune': {
+      const keep = args.length ? Number(args[0].slice('--keep='.length)) : DEFAULT_KEEP;
+      const removed = pruneArtifacts(undefined, keep);
+      console.log(`오래된 하네스 산출물 ${removed.length}개를 삭제했습니다 (최근 ${keep}개 유지).`);
+      break;
+    }
     case 'typecheck': run('typescript/bin/tsc', ['--noEmit', '--emitDeclarationOnly', 'false']); break;
     case 'scss': console.log(compileStyles()); break;
     case 'test': test(args); break;

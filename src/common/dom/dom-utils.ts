@@ -5,8 +5,13 @@ import { isString } from "../../utils/isString";
 
 type ElementType = Element | string | NodeList | Document | Element[]| null | undefined;
 
+/** DOM 노드(다른 문서·iframe 의 노드 포함)인지 검사합니다. */
+function isNode(value: unknown): value is Node {
+  return value !== null && typeof value === "object" && typeof (value as Node).nodeType === "number";
+}
+
 /**
- * DOM 셀럭터 리스트 반환
+ * DOM 셀럭터 리스트 반환. 배열은 노드가 아닌 항목(null, undefined 등)을 제외한 새 배열을 반환합니다.
  *
  * @export
  * @param {(Element | string | NodeList | Document | Element[])} el 
@@ -23,7 +28,7 @@ export function $querySelectorList(el: ElementType): Node[] {
   }
 
   if (isArray(el)) {
-    return el as Element[];
+    return (el as unknown[]).filter(isNode);
   }
 
   if (el instanceof Document) {
@@ -41,6 +46,9 @@ export function $querySelectorList(el: ElementType): Node[] {
   return [];
 }
 
+/**
+ * 첫 번째 Element 또는 Document 를 반환합니다. 대상이 없으면(빈 배열·빈 NodeList 포함) null 입니다.
+ */
 export function $querySelector(el: ElementType): Document|Element|null {
 
   if(isBlank(el)){
@@ -59,13 +67,9 @@ export function $querySelector(el: ElementType): Document|Element|null {
     return document.querySelector(el)
   }
 
-  if (isArray(el)) {
-    return el[0];
-  }
-
-  
-  if (el instanceof NodeList) {
-    return el.item(0) as Element;
+  if (isArray(el) || el instanceof NodeList) {
+    // Element 가 아닌 노드(텍스트 등)와 null 은 건너뛰고 첫 Element/Document 를 반환한다
+    return ($querySelectorList(el).find(node => node.nodeType === 1 || node.nodeType === 9) as Element | Document | undefined) ?? null;
   }
 
   return null;
@@ -132,14 +136,27 @@ export function append(el: ElementType, renderElements: Element | string) {
   insertAdjacentHTML($querySelectorList(el), "beforeend", renderElements);
 }
 
+/**
+ * 삽입할 수 없는 대상(Element 가 아닌 노드, 부모가 없거나 문서 노드가 부모인 요소의 앞·뒤)은 건너뜁니다.
+ * 문자열과 Element 를 넘길 때 같은 대상 집합에 삽입하며, 브라우저가 예외를 던지는 경우에도 조용히 건너뜁니다.
+ */
+function canInsert(el: Node, insertPosition: InsertPosition): boolean {
+  if (el.nodeType !== 1) return false;
+  if (insertPosition === "beforebegin" || insertPosition === "afterend") {
+    return !!el.parentNode && el.parentNode.nodeType !== 9;
+  }
+  return true;
+}
+
 function insertAdjacentHTML(elements: Node[], insertPosition: InsertPosition, renderElements: Element | string) {
+  const targets = elements.filter(el => canInsert(el, insertPosition));
   if (isString(renderElements)) {
-    elements.forEach((el) => {
+    targets.forEach((el) => {
       (el as Element).insertAdjacentHTML(insertPosition, renderElements);
     });
   } else {
     // 같은 노드를 여러 대상에 삽입하면 마지막 대상으로 이동하므로 두 번째부터는 복제합니다.
-    elements.forEach((el, index) => {
+    targets.forEach((el, index) => {
       (el as Element).insertAdjacentElement(insertPosition, index === 0 ? renderElements : (renderElements.cloneNode(true) as Element));
     });
   }

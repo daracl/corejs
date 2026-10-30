@@ -18,6 +18,8 @@ export function formatMessage(
     const previous = msgFormat[offset - 1];
     if (previous === "$" || previous === "\\") return match;
 
-    return key in msgParam ? String(msgParam[key]) : match;
+    // 사용자가 지정한 상속 속성은 기존처럼 치환하되, Object.prototype 의 기본 속성(constructor, toString 등)은 치환하지 않는다
+    const inherited = key in msgParam && Object.prototype.hasOwnProperty.call(Object.prototype, key) && !Object.prototype.hasOwnProperty.call(msgParam, key) && (msgParam as any)[key] === (Object.prototype as any)[key];
+    return key in msgParam && !inherited ? String(msgParam[key]) : match;
   });
 }

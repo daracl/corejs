@@ -105,9 +105,9 @@ const ALLOWED_ATTRS = new Set([
 const URL_ATTRS = new Set(['href', 'src']);
 
 /**
- * style 값에서 차단하는 패턴 (외부 리소스 로드 / 구형 브라우저 스크립트 실행)
+ * style 값에서 차단하는 패턴 (외부 리소스 로드 / 구형 브라우저 스크립트 실행 / 화면을 덮는 position 오버레이)
  */
-const UNSAFE_STYLE = /url\s*\(|expression\s*\(|javascript:|@import|behavior\s*:|-moz-binding|\\|\/\*/i;
+const UNSAFE_STYLE = /url\s*\(|expression\s*\(|javascript:|@import|behavior\s*:|-moz-binding|position\s*:\s*(?:fixed|absolute|sticky)|\\|\/\*/i;
 
 function sanitizeElement(el: Element): void {
   Array.from(el.attributes).forEach((attr) => {

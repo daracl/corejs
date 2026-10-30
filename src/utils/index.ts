@@ -13,6 +13,7 @@ export * from "./isPlainObject";
 export * from "./isString";
 export * from "./isUndefined";
 export * from "./objectToQueryString";
+export * from "./joinUrl";
 export * from "./replaceParameter";
 export * from "./str";
 export * from "./uuid";
@@ -32,6 +33,7 @@ export * from "./paging";
 export * from "./sanitizeHtml";
 export * from "./path";
 export * from "./functionRefs";
+export * from "./popup";
 
 
 

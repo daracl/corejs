@@ -1,18 +1,5 @@
 {
   "liveServer.settings.port": 5504,
   "jest.runMode": "on-demand",
-  "liveSassCompile.settings.formats": [
-    // This is Default.
-    {
-      "format": "expanded",
-      "extensionName": ".css",
-      "savePath": "~/../dist/"
-    },
-    // More Complex
-    {
-      "format": "compressed",
-      "extensionName": ".min.css",
-      "savePath": "~/../dist/"
-    }
-  ]
+  "files.eol": "\n"
 }

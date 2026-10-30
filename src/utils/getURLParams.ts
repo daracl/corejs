@@ -1,3 +1,8 @@
+/** 상대 URL 해석에 쓸 기준 URL 입니다. 문서가 없는 환경에서는 임시 기준을 사용합니다. */
+function baseUrl(): string {
+    return typeof document !== "undefined" && document.baseURI ? document.baseURI : "http://localhost/";
+}
+
 /**
  * URL 문자열에서 모든 파라미터를 추출하여 객체 형태로 반환한다.
  * 동일 이름의 파라미터가 여러 번 존재한다면 배열로 처리된다.
@@ -10,8 +15,8 @@
  * @returns 파라미터(key:값[]) 객체
  */
 export function getURLParams(checkUrl: string): any {
-    // URL 객체 생성 (브라우저 URL API 사용)
-    const url = new URL(checkUrl);
+    // URL 객체 생성 (브라우저 URL API 사용). 상대 URL 은 현재 문서 기준으로 해석한다
+    const url = new URL(checkUrl, baseUrl());
 
     // 반환할 파라미터 객체
     const params = {} as any;
@@ -41,8 +46,8 @@ export function getURLParams(checkUrl: string): any {
  * @returns 파라미터 값(string) 또는 존재하지 않을 경우 null
  */
 export function getURLParam(checkUrl: string, paramKey: string): any {
-    // URL 객체 생성
-    const url = new URL(checkUrl);
+    // URL 객체 생성. 상대 URL 은 현재 문서 기준으로 해석한다
+    const url = new URL(checkUrl, baseUrl());
 
     // 단일 파라미터 값 반환 (없으면 null)
     return url.searchParams.get(paramKey);

@@ -9,20 +9,22 @@ export function escapeCellValue<T>(value: T): T | string {
 /** 인용된 탭·여러 줄·큰따옴표를 포함한 클립보드 텍스트를 해석합니다. */
 export function parseClipboard(text: string): string[][] {
   const rows: string[][] = [];
-  let row: string[] = [], cell = "", inQuotes = false;
+  let row: string[] = [], cell = "", inQuotes = false, rowEnded = false;
   text = text.replace(/(\r?\n){2}$/, "\n");
   for (let index = 0; index < text.length; index++) {
     const char = text[index], next = text[index + 1];
+    rowEnded = false;
     if (char === '"') {
       if (inQuotes && next === '"') { cell += '"'; index++; }
       else inQuotes = !inQuotes;
     } else if (!inQuotes && char === "\t") { row.push(cell); cell = ""; }
     else if (!inQuotes && (char === "\n" || char === "\r")) {
       if (char === "\r" && next === "\n") index++;
-      row.push(cell); rows.push(row); row = []; cell = "";
+      row.push(cell); rows.push(row); row = []; cell = ""; rowEnded = true;
     } else cell += char;
   }
-  row.push(cell); rows.push(row);
+  // 줄바꿈으로 끝난 텍스트(스프레드시트 복사본)는 마지막에 빈 행을 만들지 않는다
+  if (!rowEnded) { row.push(cell); rows.push(row); }
   return rows;
 }
 

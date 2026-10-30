@@ -3,6 +3,7 @@ import { isNumber } from "./typeChecks";
 import { isFunction } from "./isFunction";
 import { toNumber, formatNumber } from "./number";
 import { leftPad, escapeHTML } from "./str";
+import { escapeRegExp, maxRegexTextLength } from "./regex";
 
 export interface SortOption { field: string; direction: "asc" | "desc"; }
 export interface SearchOptions { matchCase?: boolean; matchWholeWord?: boolean; useRegex?: boolean; }
@@ -30,21 +31,23 @@ export function sortRows<T extends object>(rows: readonly T[], sorts: readonly S
   });
 }
 
-function escapeRegExp(value: string): string { return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
-
-/** 검색 함수를 만듭니다. 잘못되거나 과도하게 긴·중첩된 정규식은 리터럴로 검색합니다. */
+/**
+ * 검색 함수를 만듭니다. 잘못되었거나 길이 200자를 넘거나 역추적 위험이 있는 정규식은 리터럴로 검색합니다.
+ * 정규식 검색은 패턴의 반복 개수에 따른 텍스트 길이 상한(1~3개: 10000/1000/200자, 반복 없음: 10000자)을 넘는 텍스트에는 적용하지 않고 리터럴로 검색합니다.
+ */
 export function createMatcher(keyword: string, options: SearchOptions = {}): (text: string) => boolean {
-  let source = escapeRegExp(keyword);
-  const nested = /\([^()]*[+*|][^()]*\)[+*]/.test(keyword);
-  if (options.useRegex && keyword.length <= 200 && !nested) {
-    try { new RegExp(keyword); source = keyword; } catch { /* 리터럴 검색으로 대체합니다. */ }
+  const boundary = "[\\s.,;:!?()\\[\\]{}\"']";
+  const build = (source: string): RegExp => new RegExp(options.matchWholeWord ? `(?:^|${boundary})(?:${source})(?=$|${boundary})` : source, options.matchCase ? "" : "i");
+  const literal = build(escapeRegExp(keyword));
+  let regexp = literal;
+  let maxTextLength = 0;
+  if (options.useRegex && keyword.length <= 200) {
+    try {
+      regexp = build(keyword);
+      maxTextLength = maxRegexTextLength(keyword);
+    } catch { /* 리터럴 검색으로 대체합니다. */ }
   }
-  if (options.matchWholeWord) {
-    const boundary = "[\\s.,;:!?()\\[\\]{}\"']";
-    source = `(?:^|${boundary})(?:${source})(?=$|${boundary})`;
-  }
-  const regexp = new RegExp(source, options.matchCase ? "" : "i");
-  return text => regexp.test(text);
+  return text => (maxTextLength > 0 && text.length <= maxTextLength ? regexp : literal).test(text);
 }
 
 /** 지정한 필드 중 하나라도 검색 조건과 일치하는지 검사합니다. */

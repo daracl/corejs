@@ -4,6 +4,6 @@
  * @param {*} value
  * @returns {boolean}
  */
-export function isUndefined(value: any): value is undefined  {
-  return typeof value === "undefined";
+export function isUndefined(value: unknown): value is undefined {
+  return value === undefined;
 }
