@@ -10,6 +10,8 @@ function parseEventType(type: string): { name: string; namespaces: string[] } {
 
 /** 제거할 대상(off 의 type)이 등록된 이벤트와 일치하는지 검사합니다. 이름이나 네임스페이스를 생략하면 와일드카드입니다. */
 function matchesEventType(target: { name: string; namespaces: string[] }, registered: { name: string; namespaces: string[] }): boolean {
+  // 이름과 네임스페이스가 모두 비어 있으면(예: "." 나 "") 전체 삭제가 되지 않도록 아무것도 일치시키지 않는다
+  if (!target.name && !target.namespaces.length) return false;
   if (target.name && target.name !== registered.name) return false;
   return target.namespaces.every(namespace => registered.namespaces.includes(namespace));
 }
@@ -28,9 +30,16 @@ export class EventManager {
 
   public on(el: Element | string | NodeList | null | Document | Element[], type: string, listener?: any, selector?: any, fnOpts?: any) {
     if (el == null || typeof listener !== "function") return;
+    const signal: AbortSignal | undefined = fnOpts && typeof fnOpts === "object" ? fnOpts.signal : undefined;
+    const once = !!(fnOpts && typeof fnOpts === "object" && fnOpts.once);
+    // 이미 abort 된 signal 은 브라우저도 리스너를 등록하지 않으므로 등록 정보도 만들지 않는다
+    if (signal?.aborted) return;
     for (const target of $querySelectorList(el)) {
       for (const eventType of type.trim().split(/\s+/).filter(Boolean)) {
+        const entry: Registration = { type: eventType, handler: undefined as unknown as EventListener, capture: false };
         const handler: EventListener = (event) => {
+          // once 는 브라우저가 리스너를 자동 제거하므로 등록 정보도 함께 정리한다
+          if (once) this.release(target, entry);
           let matched: Element | undefined;
           if (typeof selector === "string" && selector.trim()) {
             const origin = event.target instanceof Element ? event.target : (event.target as Node | null)?.parentElement;
@@ -38,16 +47,20 @@ export class EventManager {
             if (!matched || !target.contains(matched)) return;
           }
           if (listener(event, matched ?? target) === false) {
-            event.stopImmediatePropagation();
+            // jQuery 와 같이 버블링만 막고, 같은 요소의 다른 핸들러는 실행되게 둔다
+            event.stopPropagation();
             event.preventDefault();
           }
         };
-        const capture = typeof fnOpts === "boolean" ? fnOpts : !!fnOpts?.capture;
+        entry.handler = handler;
+        entry.capture = typeof fnOpts === "boolean" ? fnOpts : !!fnOpts?.capture;
         target.addEventListener(eventType.split(".")[0], handler, fnOpts);
         const entries = this.registrations.get(target) ?? [];
-        entries.push({ type: eventType, handler, capture });
+        entries.push(entry);
         this.registrations.set(target, entries);
         this.track(target);
+        // signal abort 로 브라우저가 리스너를 제거하면 등록 정보도 정리한다
+        signal?.addEventListener("abort", () => this.release(target, entry), { once: true });
       }
     }
   }
@@ -83,6 +96,13 @@ export class EventManager {
       this.finalizer?.unregister(ref);
     }
     this.targets.clear();
+  }
+
+  // 리스너 제거 없이 등록 정보만 지운다(브라우저가 이미 제거한 once·signal 용)
+  private release(target: Node, entry: Registration): void {
+    const remaining = (this.registrations.get(target) ?? []).filter(item => item !== entry);
+    if (remaining.length) this.registrations.set(target, remaining);
+    else this.untrack(target);
   }
 
   // offAll 이 순회할 요소 목록을 약한 참조로 보관한다(WeakRef 가 없으면 강한 참조로 대체)

@@ -137,6 +137,55 @@ describe("DOM·이벤트", () => {
       expect(calls).toEqual(["click.b"]);
     });
 
+    it("off('.') 와 off('') 는 아무것도 제거하지 않는다", () => {
+      const manager = new EventManager();
+      const el = document.createElement("div");
+      let count = 0;
+      manager.on(el, "click.a", () => { count++; });
+      manager.off(el, ".");
+      manager.off(el, "");
+      fire(el);
+      expect(count).toBe(1);
+      manager.offAll();
+    });
+
+    it("once 는 한 번만 실행되고 등록 정보가 남지 않아 off 없이도 재등록할 수 있다", () => {
+      const manager = new EventManager();
+      const el = document.createElement("div");
+      let count = 0;
+      manager.on(el, "click", () => { count++; }, undefined, { once: true });
+      fire(el);
+      fire(el);
+      expect(count).toBe(1);
+      expect((manager as any).registrations.get(el)).toBeUndefined();
+    });
+
+    it("signal abort 시 리스너와 등록 정보가 정리되고, 이미 abort 된 signal 은 등록하지 않는다", () => {
+      const manager = new EventManager();
+      const el = document.createElement("div");
+      let count = 0;
+      const controller = new AbortController();
+      manager.on(el, "click", () => { count++; }, undefined, { signal: controller.signal });
+      fire(el);
+      controller.abort();
+      fire(el);
+      expect(count).toBe(1);
+      expect((manager as any).registrations.get(el)).toBeUndefined();
+      manager.on(el, "click", () => { count++; }, undefined, { signal: controller.signal });
+      expect((manager as any).registrations.get(el)).toBeUndefined();
+    });
+
+    it("false 를 반환해도 같은 요소의 다른 핸들러는 실행된다", () => {
+      const manager = new EventManager();
+      const el = document.createElement("div");
+      const calls: string[] = [];
+      manager.on(el, "click", () => { calls.push("first"); return false; });
+      manager.on(el, "click", () => { calls.push("second"); });
+      fire(el);
+      expect(calls).toEqual(["first", "second"]);
+      manager.offAll();
+    });
+
     it("offAll 은 등록한 모든 핸들러를 제거하고 다시 등록할 수 있다", () => {
       const manager = new EventManager();
       const el = document.createElement("div");
