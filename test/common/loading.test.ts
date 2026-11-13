@@ -81,3 +81,87 @@ describe("Loading 공유 화면 수명주기", () => {
     }
   });
 });
+
+
+describe("Loading positioning", () => {
+  it.each(["body", "html", "body:first-of-type", document.body, document.documentElement, null])("uses fixed for document target %s without changing its position", (target) => {
+    const container = target === "html" || target === document.documentElement ? document.documentElement : document.body;
+    const original = container.style.position;
+    container.style.position = "static";
+    const loading = new Loading(target);
+    try {
+      const root = container.querySelector<HTMLElement>(":scope > .daracl-cl")!;
+      expect(getComputedStyle(root).position).toBe("fixed");
+      expect(container.style.position).toBe("static");
+      expect(getComputedStyle(root.querySelector<HTMLElement>(".daracl-cl-backdrop")!).position).toBe("absolute");
+      container.style.position = "relative";
+      loading.hide();
+      expect(container.style.position).toBe("relative");
+      loading.show();
+      expect(getComputedStyle(container.querySelector<HTMLElement>(":scope > .daracl-cl")!).position).toBe("fixed");
+    } finally {
+      loading.hide();
+      container.style.position = original;
+    }
+  });
+
+  it.each(["", "absolute", "relative", "fixed", "sticky"])("restores container position=%s after the last shared loader exits", (position) => {
+    const container = document.createElement("div");
+    container.style.position = position;
+    document.body.appendChild(container);
+    const first = new Loading(container);
+    const second = new Loading(container);
+    try {
+      expect(getComputedStyle(container.querySelector<HTMLElement>(".daracl-cl")!).position).toBe("absolute");
+      expect(container.style.position).toBe(position || "relative");
+      first.hide();
+      expect(container.querySelector(".daracl-cl")).not.toBeNull();
+      expect(container.style.position).toBe(position || "relative");
+      second.hide();
+      expect(container.querySelector(".daracl-cl")).toBeNull();
+      expect(container.style.position).toBe(position);
+    } finally {
+      first.hide();
+      second.hide();
+      container.remove();
+    }
+  });
+});
+
+
+describe("Loading 파일 내 CSS", () => {
+  afterEach(() => { Loading.destroy("body"); jest.restoreAllMocks(); });
+
+  it("공통 스타일은 한 번 등록하고 화면 이동 이벤트를 구독하지 않는다", () => {
+    const addWindow = jest.spyOn(window, "addEventListener");
+    const first = new Loading("body", { enableCancelButton: true, enableTime: true });
+    const root = document.body.querySelector<HTMLElement>(":scope > .daracl-cl")!;
+    const css = document.querySelector("style[data-daracl-loading-styles]")!.textContent!;
+    expect(root.style.position).toBe("");
+    expect(root.style.width).toBe("");
+    expect(root.style.height).toBe("");
+    expect(getComputedStyle(root).display).toBe("flex");
+    expect(css).toContain("100dvh");
+    expect(css).toContain(".daracl-cl-btn:hover");
+    expect(css).toContain("prefers-reduced-motion");
+    expect(root.querySelector("animateTransform")).toBeNull();
+    expect(root.querySelector(".daracl-cl-panel")!.hasAttribute("style")).toBe(false);
+    expect(root.querySelector(".daracl-cl-btn")!.hasAttribute("style")).toBe(false);
+    expect(addWindow.mock.calls.some(([type]) => type === "scroll" || type === "resize")).toBe(false);
+    first.hide();
+    first.show();
+    expect(document.querySelectorAll("style[data-daracl-loading-styles]")).toHaveLength(1);
+    first.hide();
+  });
+
+  it("공개 외형 옵션은 CSS 변수로 전달하고 테마를 유지한다", () => {
+    const loading = new Loading("body", { bgColor: "red", opacity: "0.5", cursor: "progress", zIndex: 123, theme: "dark" });
+    const root = document.body.querySelector<HTMLElement>(":scope > .daracl-cl")!;
+    expect(root.style.getPropertyValue("--daracl-loading-backdrop")).toBe("red");
+    expect(root.style.getPropertyValue("--daracl-loading-opacity")).toBe("0.5");
+    expect(root.style.getPropertyValue("--daracl-loading-cursor")).toBe("progress");
+    expect(root.style.getPropertyValue("--daracl-loading-z-index")).toBe("123");
+    expect(root.getAttribute("data-loading-theme")).toBe("dark");
+    loading.hide();
+  });
+});

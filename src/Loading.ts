@@ -14,73 +14,77 @@ function isSafeImageUrl(url: string): boolean {
 }
 
 
-/** 요소에 인라인 스타일을 DOM API 로 설정합니다. 값이 문자열로만 들어가 속성 주입이 되지 않습니다. */
-function setStyles(element: HTMLElement, styles: Record<string, string>): void {
-  for (const name of Object.keys(styles)) element.style.setProperty(name, styles[name]);
+// 외형은 고정 CSS로 등록하며 사용자 입력을 스타일시트 문자열에 삽입하지 않는다.
+const LOADING_CSS = `
+.daracl-cl {
+  --cl-surface-base: #ffffff; --cl-text-base: #222222; --cl-muted-base: #626976;
+  --cl-border-base: #d9dde3; --cl-hover-base: #e3e3e3; --cl-shadow-base: 0 2px 8px rgba(0,0,0,.15);
+  --cl-surface: var(--dui-body-bg, var(--cl-surface-base));
+  --cl-text: var(--dui-font-color, var(--cl-text-base));
+  --cl-muted: var(--dui-muted-color, var(--cl-muted-base));
+  --cl-border: var(--dui-border-color, var(--cl-border-base));
+  --cl-hover: var(--dui-button-hover-bg, var(--cl-hover-base));
+  --cl-shadow: var(--dui-shadow, var(--cl-shadow-base));
+  --cl-accent: var(--dui-primary-color, #2563eb);
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center; overflow: hidden; box-sizing: border-box;
+  cursor: var(--daracl-loading-cursor, wait); z-index: var(--daracl-loading-z-index, 9999);
+  color: var(--cl-text); font: 400 14px/1.5 system-ui, sans-serif;
 }
-
-type LoadingMode = "light" | "dark";
-
-interface LoadingColors {
-  surface: string;
-  text: string;
-  muted: string;
-  border: string;
-  accent: string;
-  hover: string;
-  shadow: string;
+.daracl-cl[data-loading-theme="dark"], .daracl-cl[data-loading-mode="dark"] {
+  --cl-surface-base: #1d1e1f; --cl-text-base: #cfd3dc; --cl-muted-base: #8d9095;
+  --cl-border-base: #4c4d4f; --cl-hover-base: #303030; --cl-shadow-base: 0 2px 12px rgba(0,0,0,.72);
 }
-
-// 값은 @daracl/ui-style 의 --dui-* 토큰과 같은 색이다
-const PALETTE: Record<LoadingMode, Record<keyof LoadingColors, [string, string]>> = {
-  light: {
-    surface: ["--dui-body-bg", "#ffffff"],
-    text: ["--dui-font-color", "#222222"],
-    muted: ["--dui-muted-color", "#626976"],
-    border: ["--dui-border-color", "#d9dde3"],
-    accent: ["--dui-primary-color", "#2563eb"],
-    hover: ["--dui-button-hover-bg", "#e3e3e3"],
-    shadow: ["--dui-shadow", "0 2px 8px rgba(0, 0, 0, 0.15)"],
-  },
-  dark: {
-    surface: ["--dui-body-bg", "#1d1e1f"],
-    text: ["--dui-font-color", "#cfd3dc"],
-    muted: ["--dui-muted-color", "#8d9095"],
-    border: ["--dui-border-color", "#4c4d4f"],
-    accent: ["--dui-primary-color", "#2563eb"],
-    hover: ["--dui-button-hover-bg", "#303030"],
-    shadow: ["--dui-shadow", "0 2px 12px rgba(0, 0, 0, 0.72)"],
-  },
-};
-
-/** 표시할 모드를 정합니다. 명시 테마가 우선이고, auto 는 상위 data-daracl-theme 속성, 없으면 OS 설정을 따릅니다. */
-function resolveMode(container: HTMLElement, theme: string): LoadingMode {
-  if (theme === "light" || theme === "dark") return theme;
-  const attr = container.closest("[data-daracl-theme]")?.getAttribute("data-daracl-theme");
-  if (attr === "light" || attr === "dark") return attr;
-  return typeof window.matchMedia === "function" && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-}
-
-/**
- * 색 값을 만듭니다. auto 는 var(--dui-*, 대체값) 으로 두어 ui-style 의 테마 변수를 따르고(토큰이 없으면 대체값),
- * 명시 테마(light|dark)는 해당 모드의 고정 값을 사용합니다.
- */
-function resolveColors(mode: LoadingMode, theme: string): LoadingColors {
-  const colors = {} as LoadingColors;
-  for (const key of Object.keys(PALETTE[mode]) as (keyof LoadingColors)[]) {
-    const [token, fallback] = PALETTE[mode][key];
-    colors[key] = theme === "light" || theme === "dark" ? fallback : "var(" + token + ", " + fallback + ")";
+@media (prefers-color-scheme: dark) {
+  .daracl-cl[data-loading-theme="auto"]:not([data-loading-mode]) {
+    --cl-surface-base: #1d1e1f; --cl-text-base: #cfd3dc; --cl-muted-base: #8d9095;
+    --cl-border-base: #4c4d4f; --cl-hover-base: #303030; --cl-shadow-base: 0 2px 12px rgba(0,0,0,.72);
   }
-  return colors;
+}
+.daracl-cl[data-loading-theme="light"], .daracl-cl[data-loading-theme="dark"] {
+  --cl-surface: var(--cl-surface-base); --cl-text: var(--cl-text-base); --cl-muted: var(--cl-muted-base);
+  --cl-border: var(--cl-border-base); --cl-hover: var(--cl-hover-base); --cl-shadow: var(--cl-shadow-base); --cl-accent: #2563eb;
+}
+.daracl-cl.daracl-cl-fullscreen {
+  position: fixed; width: 100vw; height: 100vh; width: 100dvw; height: 100dvh;
+}
+.daracl-cl-backdrop {
+  position: absolute; inset: 0; z-index: 1;
+  background: var(--daracl-loading-backdrop, var(--cl-surface)); opacity: var(--daracl-loading-opacity, .3);
+}
+.daracl-cl-panel {
+  position: relative; z-index: 10; text-align: center; margin: 0; box-sizing: border-box;
+  max-width: calc(100% - 24px); max-height: calc(100% - 24px); overflow: auto;
+  display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 24px 28px;
+  border: 1px solid var(--cl-border); border-radius: 16px; background: var(--cl-surface); box-shadow: var(--cl-shadow);
+}
+.daracl-cl-time, .daracl-cl-request-count { color: var(--cl-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.daracl-cl-actions { width: 100%; }
+.daracl-cl-btn {
+  min-height: 36px; padding: 6px 18px; border: 1px solid var(--cl-border); border-radius: 8px;
+  background: var(--cl-surface); color: var(--cl-text); font: inherit; cursor: pointer;
+}
+.daracl-cl-btn:hover { background: var(--cl-hover); }
+.daracl-cl-content { overflow-wrap: anywhere; }
+.daracl-cl-spinner { display: block; flex-shrink: 0; }
+.daracl-cl-track { stroke: var(--cl-border); }
+.daracl-cl-arc { stroke: var(--cl-accent); transform-origin: 16px 16px; animation: daracl-cl-spin .8s linear infinite; }
+@keyframes daracl-cl-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .daracl-cl-arc { animation: none; } }
+`;
+
+function ensureLoadingStyles(): void {
+  if (document.querySelector("style[data-daracl-loading-styles]")) return;
+  const style = document.createElement("style");
+  style.setAttribute("data-daracl-loading-styles", "");
+  style.textContent = LOADING_CSS;
+  (document.head || document.documentElement).appendChild(style);
 }
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
-/**
- * 돌아가는 SVG 스피너를 만듭니다. 애니메이션은 SMIL 이라 CSS 없이 동작하고, 색은 인라인 var() 로 지정합니다.
- * prefers-reduced-motion 이면 회전하지 않습니다.
- */
-function createSpinner(colors: LoadingColors): SVGSVGElement {
+/** 스피너의 모양과 회전은 파일 내 CSS에서 처리합니다. */
+function createSpinner(): SVGSVGElement {
   const svg = document.createElementNS(SVG_NS, "svg");
   svg.setAttribute("class", "daracl-cl-image daracl-cl-spinner");
   svg.setAttribute("viewBox", "0 0 32 32");
@@ -88,8 +92,6 @@ function createSpinner(colors: LoadingColors): SVGSVGElement {
   svg.setAttribute("height", "32");
   svg.setAttribute("role", "img");
   svg.setAttribute("aria-label", "로딩 중");
-  svg.style.setProperty("display", "block");
-  svg.style.setProperty("flex-shrink", "0");
 
   const track = document.createElementNS(SVG_NS, "circle");
   const arc = document.createElementNS(SVG_NS, "circle");
@@ -100,20 +102,10 @@ function createSpinner(colors: LoadingColors): SVGSVGElement {
     circle.setAttribute("fill", "none");
     circle.setAttribute("stroke-width", "3");
   }
-  track.style.setProperty("stroke", colors.border);
-  arc.style.setProperty("stroke", colors.accent);
+  track.setAttribute("class", "daracl-cl-track");
+  arc.setAttribute("class", "daracl-cl-arc");
   arc.setAttribute("stroke-linecap", "round");
   arc.setAttribute("stroke-dasharray", "21 64");
-  if (!(typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) {
-    const spin = document.createElementNS(SVG_NS, "animateTransform");
-    spin.setAttribute("attributeName", "transform");
-    spin.setAttribute("type", "rotate");
-    spin.setAttribute("from", "0 16 16");
-    spin.setAttribute("to", "360 16 16");
-    spin.setAttribute("dur", "0.8s");
-    spin.setAttribute("repeatCount", "indefinite");
-    arc.appendChild(spin);
-  }
   svg.append(track, arc);
   return svg;
 }
@@ -175,11 +167,11 @@ export class Loading {
   private loadingElement: HTMLElement | null;
   private options: Required<LoadingOptions>;
   private orginStylePosition = "";
+  private changedStylePosition = false;
   private intervalId?: number;
   private timeoutId?: number;
   private group?: LoadingGroup;
   private startedAt = 0;
-  private colors?: LoadingColors;
 
   constructor(selector: string | HTMLElement | null | undefined, options : LoadingOptions = {}) {
 
@@ -254,7 +246,6 @@ export class Loading {
       time = document.createElement("div");
       time.className = "daracl-cl-time";
       time.setAttribute("aria-label", "경과 시간(초)");
-      setStyles(time, { color: renderer.colors?.muted ?? "inherit", "font-size": "12px", "font-variant-numeric": "tabular-nums" });
       image?.insertAdjacentElement("beforebegin", time);
     }
     if (enableTime && time) {
@@ -276,17 +267,10 @@ export class Loading {
       if (!button) {
         const wrapper = document.createElement("div");
         wrapper.className = "daracl-cl-actions";
-        wrapper.style.setProperty("width", "100%");
         const cancel = document.createElement("button");
         cancel.type = "button";
         cancel.className = "daracl-cl-btn";
         cancel.textContent = "Cancel";
-        const colors = renderer.colors;
-        if (colors) {
-          setStyles(cancel, { "min-height": "36px", padding: "6px 18px", border: "1px solid " + colors.border, "border-radius": "8px", background: colors.surface, color: colors.text, font: "inherit", cursor: "pointer" });
-          cancel.addEventListener("mouseenter", () => cancel.style.setProperty("background", colors.hover));
-          cancel.addEventListener("mouseleave", () => cancel.style.setProperty("background", colors.surface));
-        }
         cancel.addEventListener("click", () => renderer.cancelHandler());
         wrapper.appendChild(cancel);
         image?.parentElement?.appendChild(wrapper);
@@ -325,7 +309,6 @@ export class Loading {
       counter = document.createElement("div");
       counter.className = "daracl-cl-request-count";
       counter.setAttribute("role", "status");
-      setStyles(counter, { color: group.renderer.colors?.muted ?? "inherit", "font-size": "12px", "font-variant-numeric": "tabular-nums" });
       element.querySelector(".daracl-cl-image")?.insertAdjacentElement("afterend", counter);
     }
     counter.textContent = `진행 중 요청: ${count}`;
@@ -335,7 +318,7 @@ export class Loading {
   /**
    * show loading module
    * @public
-   */ 
+   */
   public show (){
     const containerNode = this.containerNode;
     if (!containerNode) return;
@@ -354,17 +337,18 @@ export class Loading {
 
     if (containerNode.querySelector(":scope >.daracl-cl")) return;
 
+    // 문서 전체 로딩은 화면 기준으로, 일반 요소 로딩은 컨테이너 기준으로 배치한다.
+    const isFullscreen = containerNode === document.body || containerNode === document.documentElement;
     this.orginStylePosition = containerNode.style.position;
     const computedStyle = getComputedStyle(containerNode);
 
-    if (!["absolute", "relative", "fixed", "sticky"].includes(computedStyle.position)) {
+    this.changedStylePosition = !isFullscreen && !["absolute", "relative", "fixed", "sticky"].includes(computedStyle.position);
+    if (this.changedStylePosition) {
       containerNode.style.position = "relative";
     }
 
     const opts = this.options;
     const theme = THEMES.includes(opts.theme) ? opts.theme : "auto";
-    const colors = resolveColors(resolveMode(containerNode, theme), theme);
-    this.colors = colors;
 
     let zIndex = opts.zIndex;
     if(defaultOptions.zIndex == opts.zIndex){
@@ -372,21 +356,25 @@ export class Loading {
     }
 
     // 옵션 값은 HTML 문자열에 끼워 넣지 않고 DOM API 로 설정해 속성 주입을 막는다
+    ensureLoadingStyles();
     const root = document.createElement("div");
-    root.className = "daracl-cl";
+    root.className = isFullscreen ? "daracl-cl daracl-cl-fullscreen" : "daracl-cl";
     root.setAttribute("data-loading-theme", theme);
+    const inheritedTheme = containerNode.closest("[data-daracl-theme]")?.getAttribute("data-daracl-theme");
+    if (theme === "auto" && (inheritedTheme === "light" || inheritedTheme === "dark")) root.setAttribute("data-loading-mode", inheritedTheme);
     root.setAttribute("aria-label", "로딩 중");
-    // 레이아웃은 스타일시트 없이도 표시되도록 인라인으로 지정한다(CSS 는 외형만 꾸민다)
-    setStyles(root, { cursor: String(opts.cursor), top: "0px", left: "0px", "z-index": String(zIndex), position: "absolute", width: "100%", height: "100%", display: "flex", "align-items": "center", "justify-content": "center", overflow: "hidden", "box-sizing": "border-box", color: colors.text, font: "400 14px/1.5 system-ui, sans-serif" });
+    // 공개 옵션 값만 CSS 변수로 전달하고 외형과 배치는 CSS가 담당한다.
+    root.style.setProperty("--daracl-loading-cursor", String(opts.cursor));
+    root.style.setProperty("--daracl-loading-z-index", String(zIndex));
+    root.style.setProperty("--daracl-loading-opacity", String(opts.opacity));
+    if (opts.bgColor !== DEFAULT_BG_COLOR) root.style.setProperty("--daracl-loading-backdrop", String(opts.bgColor));
 
     const backdrop = document.createElement("div");
     backdrop.className = "daracl-cl-backdrop";
-    setStyles(backdrop, { position: "absolute", background: opts.bgColor === DEFAULT_BG_COLOR ? colors.surface : String(opts.bgColor), opacity: String(opts.opacity), width: "100%", height: "100%", "z-index": "1" });
 
     const panel = document.createElement("div");
     panel.className = "daracl-cl-panel";
     // 패널은 오버레이 안에서 flex 로 가운데 배치하고 오버레이보다 커지지 않게 제한한다
-    setStyles(panel, { "z-index": "10", "text-align": "center", margin: "0", position: "relative", "box-sizing": "border-box", "max-width": "calc(100% - 24px)", "max-height": "calc(100% - 24px)", overflow: "auto", display: "flex", "flex-direction": "column", "align-items": "center", gap: "12px", padding: "24px 28px", border: "1px solid " + colors.border, "border-radius": "16px", background: colors.surface, "box-shadow": colors.shadow });
     if (opts.loadingImg && isSafeImageUrl(opts.loadingImg)) {
       const image = document.createElement("img");
       image.className = "daracl-cl-image";
@@ -394,7 +382,7 @@ export class Loading {
       image.setAttribute("alt", "로딩 중");
       panel.appendChild(image);
     } else {
-      panel.appendChild(createSpinner(colors));
+      panel.appendChild(createSpinner());
     }
     root.append(backdrop, panel);
 
@@ -430,7 +418,6 @@ export class Loading {
     if (!existing) {
       const created = document.createElement("div");
       created.className = "daracl-cl-content";
-      created.style.setProperty("overflow-wrap", "anywhere");
       existing = created;
       const image = loadingElement.querySelector(".daracl-cl-image");
       if (!image) return;
@@ -469,7 +456,8 @@ export class Loading {
     renderer.intervalId = undefined;
     renderer.timeoutId = undefined;
     if (renderer.containerNode && renderer.loadingElement) {
-      renderer.containerNode.style.position = renderer.orginStylePosition || "";
+      if (renderer.changedStylePosition) renderer.containerNode.style.position = renderer.orginStylePosition || "";
+      renderer.changedStylePosition = false;
       renderer.loadingElement.remove();
       renderer.loadingElement = null;
     }
